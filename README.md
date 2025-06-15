@@ -15,12 +15,9 @@ The REST API documentation can be found on [lerfhub.xyz](https://lerfhub.xyz). T
 ## Installation
 
 ```sh
-# install from the production repo
-pip install git+ssh://git@github.com/BoomchainLabs/nextflare-earn.git
+# install from PyPI
+pip install --pre earn_app
 ```
-
-> [!NOTE]
-> Once this package is [published to PyPI](https://app.stainless.com/docs/guides/publish), this will become: `pip install --pre earn_app`
 
 ## Usage
 
