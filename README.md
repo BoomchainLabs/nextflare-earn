@@ -16,7 +16,7 @@ The REST API documentation can be found on [lerfhub.xyz](https://lerfhub.xyz). T
 
 ```sh
 # install from PyPI
-pip install --pre earn_app
+pip install earn_app
 ```
 
 ## Usage
