@@ -563,7 +563,7 @@ class TestEarnApp:
                 EarnApp(api_key=api_key, _strict_response_validation=True, environment="production")
 
             client = EarnApp(base_url=None, api_key=api_key, _strict_response_validation=True, environment="production")
-            assert str(client.base_url).startswith("https://api.lerfhub.xyz/api")
+            assert str(client.base_url).startswith("https://api.slerfhub.xyz/api")
 
     @pytest.mark.parametrize(
         "client",
@@ -1379,7 +1379,7 @@ class TestAsyncEarnApp:
             client = AsyncEarnApp(
                 base_url=None, api_key=api_key, _strict_response_validation=True, environment="production"
             )
-            assert str(client.base_url).startswith("https://api.lerfhub.xyz/api")
+            assert str(client.base_url).startswith("https://api.slerfhub.xyz/api")
 
     @pytest.mark.parametrize(
         "client",

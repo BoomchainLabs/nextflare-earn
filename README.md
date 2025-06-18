@@ -10,7 +10,7 @@ It is generated with [Stainless](https://www.stainless.com/).
 
 ## Documentation
 
-The REST API documentation can be found on [lerfhub.xyz](https://lerfhub.xyz). The full API of this library can be found in [api.md](api.md).
+The REST API documentation can be found on [slerfhub.xyz](https://slerfhub.xyz). The full API of this library can be found in [api.md](api.md).
 
 ## Installation
 
