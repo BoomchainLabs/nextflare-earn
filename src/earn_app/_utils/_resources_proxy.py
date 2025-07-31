@@ -15,6 +15,12 @@ class ResourcesProxy(LazyProxy[Any]):
 
     @override
     def __load__(self) -> Any:
+        """
+        Dynamically imports and returns the `earn_app.resources` module when accessed through the proxy.
+        
+        Returns:
+            The imported `earn_app.resources` module.
+        """
         import importlib
 
         mod = importlib.import_module("earn_app.resources")

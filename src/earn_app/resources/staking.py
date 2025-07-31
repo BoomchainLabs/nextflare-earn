@@ -23,19 +23,16 @@ class StakingResource(SyncAPIResource):
     @cached_property
     def with_raw_response(self) -> StakingResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables HTTP method calls to return raw HTTP response objects instead of parsed content.
         """
         return StakingResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> StakingResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming HTTP responses for staking vault API calls.
+        
+        Use this property to access methods that return streamed responses, allowing you to process response data incrementally without reading the entire body at once.
         """
         return StakingResourceWithStreamingResponse(self)
 
@@ -49,7 +46,20 @@ class StakingResource(SyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> StakingListVaultsResponse:
-        """Retrieve all available staking vaults"""
+        """
+        Retrieve all available staking vaults.
+        
+        Sends a GET request to the `/staking/vaults` endpoint and returns a parsed response containing the list of staking vaults.
+        
+        Parameters:
+            extra_headers (dict, optional): Additional HTTP headers to include in the request.
+            extra_query (dict, optional): Additional query parameters to include in the request.
+            extra_body (dict, optional): Additional body content to include in the request.
+            timeout (float or httpx.Timeout, optional): Timeout setting for the request.
+        
+        Returns:
+            StakingListVaultsResponse: Parsed response containing staking vault information.
+        """
         return self._get(
             "/staking/vaults",
             options=make_request_options(
@@ -63,19 +73,18 @@ class AsyncStakingResource(AsyncAPIResource):
     @cached_property
     def with_raw_response(self) -> AsyncStakingResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables access to raw HTTP response objects for all staking-related API calls.
+        
+        Use this property to receive unparsed HTTP responses instead of parsed content when calling API methods.
         """
         return AsyncStakingResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> AsyncStakingResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streamed HTTP responses for staking API calls without eagerly reading the response body.
+        
+        Use this property to access asynchronous staking endpoints with streaming response handling.
         """
         return AsyncStakingResourceWithStreamingResponse(self)
 
@@ -89,7 +98,18 @@ class AsyncStakingResource(AsyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> StakingListVaultsResponse:
-        """Retrieve all available staking vaults"""
+        """
+        Asynchronously retrieves all available staking vaults.
+        
+        Parameters:
+            extra_headers: Optional additional HTTP headers to include in the request.
+            extra_query: Optional additional query parameters to include in the request.
+            extra_body: Optional additional body content to include in the request.
+            timeout: Optional timeout setting for the request.
+        
+        Returns:
+            StakingListVaultsResponse: Parsed response containing the list of staking vaults.
+        """
         return await self._get(
             "/staking/vaults",
             options=make_request_options(
@@ -101,6 +121,12 @@ class AsyncStakingResource(AsyncAPIResource):
 
 class StakingResourceWithRawResponse:
     def __init__(self, staking: StakingResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for staking vault operations.
+        
+        Parameters:
+            staking (StakingResource): The staking resource instance to wrap.
+        """
         self._staking = staking
 
         self.list_vaults = to_raw_response_wrapper(
@@ -110,6 +136,12 @@ class StakingResourceWithRawResponse:
 
 class AsyncStakingResourceWithRawResponse:
     def __init__(self, staking: AsyncStakingResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for asynchronous staking vault operations.
+        
+        Parameters:
+            staking (AsyncStakingResource): The asynchronous staking resource to wrap.
+        """
         self._staking = staking
 
         self.list_vaults = async_to_raw_response_wrapper(
@@ -119,6 +151,12 @@ class AsyncStakingResourceWithRawResponse:
 
 class StakingResourceWithStreamingResponse:
     def __init__(self, staking: StakingResource) -> None:
+        """
+        Initialize the streaming response wrapper for staking resource methods.
+        
+        Parameters:
+            staking (StakingResource): The staking resource instance to wrap.
+        """
         self._staking = staking
 
         self.list_vaults = to_streamed_response_wrapper(
@@ -128,6 +166,12 @@ class StakingResourceWithStreamingResponse:
 
 class AsyncStakingResourceWithStreamingResponse:
     def __init__(self, staking: AsyncStakingResource) -> None:
+        """
+        Initialize the streaming response wrapper for asynchronous staking resource methods.
+        
+        Parameters:
+            staking (AsyncStakingResource): The asynchronous staking resource to be wrapped.
+        """
         self._staking = staking
 
         self.list_vaults = async_to_streamed_response_wrapper(

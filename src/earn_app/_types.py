@@ -122,10 +122,16 @@ class NotGiven:
     """
 
     def __bool__(self) -> Literal[False]:
+        """
+        Always evaluates the instance as False in boolean contexts.
+        """
         return False
 
     @override
     def __repr__(self) -> str:
+        """
+        Return the string representation of the NotGiven sentinel instance.
+        """
         return "NOT_GIVEN"
 
 
@@ -151,6 +157,9 @@ class Omit:
     """
 
     def __bool__(self) -> Literal[False]:
+        """
+        Always evaluates the instance as False in boolean contexts.
+        """
         return False
 
 
@@ -162,14 +171,33 @@ class ModelBuilderProtocol(Protocol):
         *,
         response: Response,
         data: object,
-    ) -> _T: ...
+    ) -> _T: """
+        Constructs an instance of the class from an HTTP response and parsed data.
+        
+        Parameters:
+            response (Response): The HTTP response object.
+            data (object): The parsed response data to initialize the instance.
+        
+        Returns:
+            An instance of the class initialized with the provided response and data.
+        """
+        ...
 
 
 Headers = Mapping[str, Union[str, Omit]]
 
 
 class HeadersLikeProtocol(Protocol):
-    def get(self, __key: str) -> str | None: ...
+    def get(self, __key: str) -> str | None: """
+Retrieve the value associated with the specified header key.
+
+Parameters:
+    __key (str): The name of the header to retrieve.
+
+Returns:
+    str | None: The header value if present, otherwise None.
+"""
+...
 
 
 HeadersLike = Union[Headers, HeadersLikeProtocol]

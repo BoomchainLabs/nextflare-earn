@@ -47,6 +47,11 @@ def test_extract_type_var_generic_subclass() -> None:
 
 
 def test_extract_type_var_multiple() -> None:
+    """
+    Test extraction of each type argument from a generic class with multiple type variables.
+    
+    Verifies that `extract_type_var_from_base` correctly retrieves the first, second, and third type arguments from an instantiation of `BaseGenericMultipleTypeArgs` with concrete types.
+    """
     typ = BaseGenericMultipleTypeArgs[int, str, None]
 
     generic_bases = cast("tuple[type, ...]", (BaseGenericMultipleTypeArgs,))
@@ -56,6 +61,11 @@ def test_extract_type_var_multiple() -> None:
 
 
 def test_extract_type_var_generic_subclass_multiple() -> None:
+    """
+    Test extracting each type argument from a subclass of a generic base class with multiple type variables.
+    
+    Verifies that `extract_type_var_from_base` correctly retrieves the concrete types for all type arguments from `SubclassGenericMultipleTypeArgs` when instantiated with specific types.
+    """
     typ = SubclassGenericMultipleTypeArgs[int, str, None]
 
     generic_bases = cast("tuple[type, ...]", (BaseGenericMultipleTypeArgs,))
@@ -65,6 +75,11 @@ def test_extract_type_var_generic_subclass_multiple() -> None:
 
 
 def test_extract_type_var_generic_subclass_different_ordering_multiple() -> None:
+    """
+    Test extraction of type arguments from a subclass with reordered type variables.
+    
+    Verifies that `extract_type_var_from_base` correctly identifies the concrete types for each type variable index when the subclass reorders the type variables of its generic base class.
+    """
     typ = SubclassDifferentOrderGenericMultipleTypeArgs[int, str, None]
 
     generic_bases = cast("tuple[type, ...]", (BaseGenericMultipleTypeArgs,))

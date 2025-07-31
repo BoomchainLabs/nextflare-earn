@@ -19,30 +19,61 @@ from .._compat import is_union as _is_union
 
 
 def is_annotated_type(typ: type) -> bool:
+    """
+    Return True if the given type is an Annotated type.
+    
+    Parameters:
+        typ (type): The type to check.
+    
+    Returns:
+        bool: True if typ is an Annotated type, otherwise False.
+    """
     return get_origin(typ) == Annotated
 
 
 def is_list_type(typ: type) -> bool:
+    """
+    Return True if the given type is a list or a typing.List type.
+    """
     return (get_origin(typ) or typ) == list
 
 
 def is_iterable_type(typ: type) -> bool:
-    """If the given type is `typing.Iterable[T]`"""
+    """
+    Return True if the given type is an instance of typing.Iterable or collections.abc.Iterable.
+    """
     origin = get_origin(typ) or typ
     return origin == Iterable or origin == _c_abc.Iterable
 
 
 def is_union_type(typ: type) -> bool:
+    """
+    Return True if the given type is a union type.
+    
+    A union type is one created using typing.Union, the | operator (Python 3.10+), or typing_extensions.UnionType.
+    """
     return _is_union(get_origin(typ))
 
 
 def is_required_type(typ: type) -> bool:
+    """
+    Return True if the given type is a typing.Required type.
+    """
     return get_origin(typ) == Required
 
 
 def is_typevar(typ: type) -> bool:
     # type ignore is required because type checkers
     # think this expression will always return False
+    """
+    Return True if the given object is a TypeVar instance.
+    
+    Parameters:
+    	typ (type): The object to check.
+    
+    Returns:
+    	bool: True if typ is a TypeVar, otherwise False.
+    """
     return type(typ) == TypeVar  # type: ignore
 
 
@@ -52,16 +83,10 @@ if sys.version_info >= (3, 12):
 
 
 def is_type_alias_type(tp: Any, /) -> TypeIs[typing_extensions.TypeAliasType]:
-    """Return whether the provided argument is an instance of `TypeAliasType`.
-
-    ```python
-    type Int = int
-    is_type_alias_type(Int)
-    # > True
-    Str = TypeAliasType("Str", str)
-    is_type_alias_type(Str)
-    # > True
-    ```
+    """
+    Return True if the given object is a recognized TypeAliasType instance.
+    
+    This includes both typing_extensions.TypeAliasType and, if available, typing.TypeAliasType from Python 3.12+.
     """
     return isinstance(tp, _TYPE_ALIAS_TYPES)
 
@@ -69,6 +94,15 @@ def is_type_alias_type(tp: Any, /) -> TypeIs[typing_extensions.TypeAliasType]:
 # Extracts T from Annotated[T, ...] or from Required[Annotated[T, ...]]
 @lru_cache(maxsize=8096)
 def strip_annotated_type(typ: type) -> type:
+    """
+    Recursively removes `Annotated` and `Required` wrappers from a type, returning the underlying base type.
+    
+    Parameters:
+        typ (type): The type to process, potentially wrapped with `Annotated` or `Required`.
+    
+    Returns:
+        type: The innermost base type with all `Annotated` and `Required` layers removed.
+    """
     if is_required_type(typ) or is_annotated_type(typ):
         return strip_annotated_type(cast(type, get_args(typ)[0]))
 
@@ -76,6 +110,19 @@ def strip_annotated_type(typ: type) -> type:
 
 
 def extract_type_arg(typ: type, index: int) -> type:
+    """
+    Extracts the type argument at the specified index from a generic type.
+    
+    Parameters:
+        typ (type): A generic type from which to extract the type argument.
+        index (int): The position of the type argument to extract.
+    
+    Returns:
+        type: The type argument at the given index.
+    
+    Raises:
+        RuntimeError: If the type does not have a type argument at the specified index.
+    """
     args = get_args(typ)
     try:
         return cast(type, args[index])
@@ -90,24 +137,22 @@ def extract_type_var_from_base(
     index: int,
     failure_message: str | None = None,
 ) -> type:
-    """Given a type like `Foo[T]`, returns the generic type variable `T`.
-
-    This also handles the case where a concrete subclass is given, e.g.
-    ```py
-    class MyResponse(Foo[bytes]):
-        ...
-
-    extract_type_var(MyResponse, bases=(Foo,), index=0) -> bytes
-    ```
-
-    And where a generic subclass is given:
-    ```py
-    _T = TypeVar('_T')
-    class MyResponse(Foo[_T]):
-        ...
-
-    extract_type_var(MyResponse[bytes], bases=(Foo,), index=0) -> bytes
-    ```
+    """
+    Extracts the concrete type argument at the specified index from a generic base class in a given type or subclass.
+    
+    Given a type or subclass that inherits from one of the provided generic base classes, this function resolves and returns the type argument at the specified index. Handles direct generic types, concrete subclasses, and generic subclasses with unresolved type variables.
+    
+    Parameters:
+        typ (type): The type or subclass to inspect.
+        generic_bases (tuple[type, ...]): Tuple of generic base classes to match against.
+        index (int): The index of the type argument to extract.
+        failure_message (str | None): Optional custom error message if resolution fails.
+    
+    Returns:
+        type: The resolved type argument at the specified index.
+    
+    Raises:
+        RuntimeError: If the generic base class or type argument cannot be resolved.
     """
     cls = cast(object, get_origin(typ) or typ)
     if cls in generic_bases:  # pyright: ignore[reportUnnecessaryContains]

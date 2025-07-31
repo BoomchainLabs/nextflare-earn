@@ -9,6 +9,14 @@ from earn_app._utils import extract_files
 
 
 def test_removes_files_from_input() -> None:
+    """
+    Test that `extract_files` correctly extracts and removes file-like objects from nested dictionaries at specified key paths.
+    
+    Verifies that:
+    - No files are extracted and input remains unchanged when no paths are provided.
+    - Files at given paths are extracted as (key path, bytes) tuples and removed from the input.
+    - Non-file data is preserved in the input after extraction.
+    """
     query = {"foo": "bar"}
     assert extract_files(query, paths=[]) == []
     assert query == {"foo": "bar"}
@@ -27,6 +35,9 @@ def test_removes_files_from_input() -> None:
 
 
 def test_multiple_files() -> None:
+    """
+    Tests that extract_files correctly extracts multiple files from a list of dictionaries at the specified path and removes the file entries from the original input.
+    """
     query = {"documents": [{"file": b"My first file"}, {"file": b"My second file"}]}
     assert extract_files(query, paths=[["documents", "<array>", "file"]]) == [
         ("documents[][file]", b"My first file"),
@@ -61,4 +72,12 @@ def test_ignores_incorrect_paths(
     paths: Sequence[Sequence[str]],
     expected: list[tuple[str, FileTypes]],
 ) -> None:
+    """
+    Test that extract_files returns an empty list and leaves the input unchanged when paths do not match the input structure.
+    
+    Parameters:
+        query (dict): The input dictionary to search for files.
+        paths (Sequence[Sequence[str]]): Key paths that do not correspond to any files in the input.
+        expected (list): The expected empty list of extracted files.
+    """
     assert extract_files(query, paths=paths) == expected

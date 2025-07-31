@@ -28,6 +28,17 @@ async def transform(
     expected_type: object,
     use_async: bool,
 ) -> _T:
+    """
+    Transforms input data to match the specified type, using either asynchronous or synchronous processing.
+    
+    Parameters:
+        data: The input data to be transformed.
+        expected_type: The target type or schema to which the data should conform.
+        use_async: If True, performs the transformation asynchronously; otherwise, uses synchronous processing.
+    
+    Returns:
+        The transformed data, structured according to the expected type.
+    """
     if use_async:
         return await _async_transform(data, expected_type=expected_type)
 
@@ -44,6 +55,11 @@ class Foo1(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_top_level_alias(use_async: bool) -> None:
+    """
+    Tests that a top-level TypedDict field is correctly transformed using its alias.
+    
+    Verifies that the key `foo_bar` is mapped to its alias `fooBar` during transformation.
+    """
     assert await transform({"foo_bar": "hello"}, expected_type=Foo1, use_async=use_async) == {"fooBar": "hello"}
 
 
@@ -63,6 +79,11 @@ class Baz2(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_recursive_typeddict(use_async: bool) -> None:
+    """
+    Test that nested TypedDicts with aliased keys are recursively transformed as expected.
+    
+    Verifies that the transformation utility correctly applies key aliasing at multiple levels of nesting within TypedDict structures.
+    """
     assert await transform({"bar": {"this_thing": 1}}, Foo2, use_async) == {"bar": {"this__thing": 1}}
     assert await transform({"bar": {"baz": {"my_baz": "foo"}}}, Foo2, use_async) == {"bar": {"Baz": {"myBaz": "foo"}}}
 
@@ -78,6 +99,12 @@ class Bar3(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_list_of_typeddict(use_async: bool) -> None:
+    """
+    Tests that a list of TypedDicts is transformed with correct aliasing of field names.
+    
+    Parameters:
+        use_async (bool): If True, runs the test using the asynchronous transformation; otherwise, uses the synchronous transformation.
+    """
     result = await transform({"things": [{"my_field": "foo"}, {"my_field": "foo2"}]}, Foo3, use_async)
     assert result == {"things": [{"myField": "foo"}, {"myField": "foo2"}]}
 
@@ -97,6 +124,9 @@ class Baz4(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_union_of_typeddict(use_async: bool) -> None:
+    """
+    Test that transformation correctly handles union fields of TypedDicts with aliased keys, including cases with overlapping keys.
+    """
     assert await transform({"foo": {"foo_bar": "bar"}}, Foo4, use_async) == {"foo": {"fooBar": "bar"}}
     assert await transform({"foo": {"foo_baz": "baz"}}, Foo4, use_async) == {"foo": {"fooBaz": "baz"}}
     assert await transform({"foo": {"foo_baz": "baz", "foo_bar": "bar"}}, Foo4, use_async) == {
@@ -119,6 +149,11 @@ class Baz5(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_union_of_list(use_async: bool) -> None:
+    """
+    Test transformation of union types involving a TypedDict or a list of TypedDicts with key aliasing.
+    
+    Verifies that both single TypedDict and list of TypedDict inputs are correctly transformed according to the expected type and key aliases.
+    """
     assert await transform({"foo": {"foo_bar": "bar"}}, Foo5, use_async) == {"FOO": {"fooBar": "bar"}}
     assert await transform(
         {
@@ -139,6 +174,9 @@ class Foo6(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_includes_unknown_keys(use_async: bool) -> None:
+    """
+    Test that unknown keys in the input dictionary are preserved during transformation, alongside aliased fields.
+    """
     assert await transform({"bar": "bar", "baz_": {"FOO": 1}}, Foo6, use_async) == {
         "Bar": "bar",
         "baz_": {"FOO": 1},
@@ -157,6 +195,9 @@ class Bar7(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_ignores_invalid_input(use_async: bool) -> None:
+    """
+    Tests that invalid input types for aliased fields are passed through without transformation, and non-aliased fields are preserved as-is.
+    """
     assert await transform({"bar": "<foo>"}, Foo7, use_async) == {"bAr": "<foo>"}
     assert await transform({"foo": "<foo>"}, Foo7, use_async) == {"foo": "<foo>"}
 
@@ -188,6 +229,9 @@ class DateModel(BaseModel):
 @parametrize
 @pytest.mark.asyncio
 async def test_iso8601_format(use_async: bool) -> None:
+    """
+    Test that datetime and date fields are correctly transformed to ISO8601-formatted strings or None in both TypedDicts and Pydantic models, handling both timezone-aware and naive datetimes.
+    """
     dt = datetime.fromisoformat("2023-02-23T14:16:36.337692+00:00")
     tz = "Z" if PYDANTIC_V2 else "+00:00"
     assert await transform({"foo": dt}, DatetimeDict, use_async) == {"foo": "2023-02-23T14:16:36.337692+00:00"}  # type: ignore[comparison-overlap]
@@ -208,6 +252,9 @@ async def test_iso8601_format(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_optional_iso8601_format(use_async: bool) -> None:
+    """
+    Test that optional datetime fields are correctly transformed to ISO8601 strings or None.
+    """
     dt = datetime.fromisoformat("2023-02-23T14:16:36.337692+00:00")
     assert await transform({"bar": dt}, DatetimeDict, use_async) == {"bar": "2023-02-23T14:16:36.337692+00:00"}  # type: ignore[comparison-overlap]
 
@@ -217,6 +264,9 @@ async def test_optional_iso8601_format(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_required_iso8601_format(use_async: bool) -> None:
+    """
+    Test that required datetime fields are transformed to ISO8601 strings and None values are preserved.
+    """
     dt = datetime.fromisoformat("2023-02-23T14:16:36.337692+00:00")
     assert await transform({"required": dt}, DatetimeDict, use_async) == {
         "required": "2023-02-23T14:16:36.337692+00:00"
@@ -228,6 +278,9 @@ async def test_required_iso8601_format(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_union_datetime(use_async: bool) -> None:
+    """
+    Test that union fields containing datetime or string values are correctly transformed, ensuring datetimes are formatted as ISO8601 strings and strings are left unchanged.
+    """
     dt = datetime.fromisoformat("2023-02-23T14:16:36.337692+00:00")
     assert await transform({"union": dt}, DatetimeDict, use_async) == {  # type: ignore[comparison-overlap]
         "union": "2023-02-23T14:16:36.337692+00:00"
@@ -239,6 +292,9 @@ async def test_union_datetime(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_nested_list_iso6801_format(use_async: bool) -> None:
+    """
+    Test that lists of datetime objects are transformed to ISO8601-formatted strings within TypedDicts.
+    """
     dt1 = datetime.fromisoformat("2023-02-23T14:16:36.337692+00:00")
     dt2 = parse_datetime("2022-01-15T06:34:23Z")
     assert await transform({"list_": [dt1, dt2]}, DatetimeDict, use_async) == {  # type: ignore[comparison-overlap]
@@ -249,6 +305,12 @@ async def test_nested_list_iso6801_format(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_datetime_custom_format(use_async: bool) -> None:
+    """
+    Tests that a datetime object is transformed to a string using a custom format template.
+    
+    Parameters:
+        use_async (bool): If True, runs the transformation asynchronously; otherwise, synchronously.
+    """
     dt = parse_datetime("2022-01-15T06:34:23Z")
 
     result = await transform(dt, Annotated[datetime, PropertyInfo(format="custom", format_template="%H")], use_async)
@@ -262,6 +324,9 @@ class DateDictWithRequiredAlias(TypedDict, total=False):
 @parametrize
 @pytest.mark.asyncio
 async def test_datetime_with_alias(use_async: bool) -> None:
+    """
+    Test that a required date field with an alias is correctly transformed to its aliased key and ISO8601 string format, or None if the value is None.
+    """
     assert await transform({"required_prop": None}, DateDictWithRequiredAlias, use_async) == {"prop": None}  # type: ignore[comparison-overlap]
     assert await transform(
         {"required_prop": date.fromisoformat("2023-02-23")}, DateDictWithRequiredAlias, use_async
@@ -275,6 +340,9 @@ class MyModel(BaseModel):
 @parametrize
 @pytest.mark.asyncio
 async def test_pydantic_model_to_dictionary(use_async: bool) -> None:
+    """
+    Test that Pydantic models, including those constructed with `construct`, are transformed into dictionaries with their field values.
+    """
     assert cast(Any, await transform(MyModel(foo="hi!"), Any, use_async)) == {"foo": "hi!"}
     assert cast(Any, await transform(MyModel.construct(foo="hi!"), Any, use_async)) == {"foo": "hi!"}
 
@@ -282,12 +350,18 @@ async def test_pydantic_model_to_dictionary(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_pydantic_empty_model(use_async: bool) -> None:
+    """
+    Test that transforming an empty Pydantic model returns an empty dictionary.
+    """
     assert cast(Any, await transform(MyModel.construct(), Any, use_async)) == {}
 
 
 @parametrize
 @pytest.mark.asyncio
 async def test_pydantic_unknown_field(use_async: bool) -> None:
+    """
+    Test that unknown fields in a Pydantic model are preserved during transformation.
+    """
     assert cast(Any, await transform(MyModel.construct(my_untyped_field=True), Any, use_async)) == {
         "my_untyped_field": True
     }
@@ -296,6 +370,9 @@ async def test_pydantic_unknown_field(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_pydantic_mismatched_types(use_async: bool) -> None:
+    """
+    Test that transforming a Pydantic model with mismatched field types preserves the original values, emitting a warning in Pydantic v2.
+    """
     model = MyModel.construct(foo=True)
     if PYDANTIC_V2:
         with pytest.warns(UserWarning):
@@ -308,6 +385,11 @@ async def test_pydantic_mismatched_types(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_pydantic_mismatched_object_type(use_async: bool) -> None:
+    """
+    Test that a Pydantic model field containing another model instance is transformed into a nested dictionary structure.
+    
+    Verifies that when a Pydantic model has a field set to another model instance, the transformation produces a dictionary with nested dictionaries, and emits a warning in Pydantic v2.
+    """
     model = MyModel.construct(foo=MyModel.construct(hello="world"))
     if PYDANTIC_V2:
         with pytest.warns(UserWarning):
@@ -324,6 +406,9 @@ class ModelNestedObjects(BaseModel):
 @parametrize
 @pytest.mark.asyncio
 async def test_pydantic_nested_objects(use_async: bool) -> None:
+    """
+    Test that nested Pydantic models are correctly transformed into dictionaries with nested structures preserved.
+    """
     model = ModelNestedObjects.construct(nested={"foo": "stainless"})
     assert isinstance(model.nested, MyModel)
     assert cast(Any, await transform(model, Any, use_async)) == {"nested": {"foo": "stainless"}}
@@ -339,6 +424,9 @@ class ModelWithDefaultField(BaseModel):
 @pytest.mark.asyncio
 async def test_pydantic_default_field(use_async: bool) -> None:
     # should be excluded when defaults are used
+    """
+    Tests that fields with default values in a Pydantic model are excluded from transformation output unless explicitly set, and are included when explicitly provided with default or non-default values.
+    """
     model = ModelWithDefaultField.construct()
     assert model.with_none_default is None
     assert model.with_str_default == "foo"
@@ -372,6 +460,9 @@ class Baz8(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_iterable_of_dictionaries(use_async: bool) -> None:
+    """
+    Test that iterables of TypedDicts are transformed correctly, including lists, tuples, and generators, with proper key aliasing.
+    """
     assert await transform({"foo": [{"foo_baz": "bar"}]}, TypedDictIterableUnion, use_async) == {
         "FOO": [{"fooBaz": "bar"}]
     }
@@ -380,6 +471,12 @@ async def test_iterable_of_dictionaries(use_async: bool) -> None:
     }
 
     def my_iter() -> Iterable[Baz8]:
+        """
+        Yield two Baz8 TypedDict instances with 'foo_baz' values 'hello' and 'world'.
+        
+        Returns:
+            An iterable of Baz8 dictionaries with preset 'foo_baz' values.
+        """
         yield {"foo_baz": "hello"}
         yield {"foo_baz": "world"}
 
@@ -391,6 +488,9 @@ async def test_iterable_of_dictionaries(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_dictionary_items(use_async: bool) -> None:
+    """
+    Tests that dictionary values, when TypedDicts with aliased fields, are transformed so that the aliases are applied to the nested items.
+    """
     class DictItems(TypedDict):
         foo_baz: Annotated[str, PropertyInfo(alias="fooBaz")]
 
@@ -404,6 +504,11 @@ class TypedDictIterableUnionStr(TypedDict):
 @parametrize
 @pytest.mark.asyncio
 async def test_iterable_union_str(use_async: bool) -> None:
+    """
+    Test transformation of union types involving strings and iterables of TypedDicts with aliasing.
+    
+    Verifies that string values are preserved and iterables of TypedDicts are transformed with correct key aliasing when using both synchronous and asynchronous transformation modes.
+    """
     assert await transform({"foo": "bar"}, TypedDictIterableUnionStr, use_async) == {"FOO": "bar"}
     assert cast(Any, await transform(iter([{"foo_baz": "bar"}]), Union[str, Iterable[Baz8]], use_async)) == [
         {"fooBaz": "bar"}
@@ -418,6 +523,9 @@ class TypedDictBase64Input(TypedDict):
 @pytest.mark.asyncio
 async def test_base64_file_input(use_async: bool) -> None:
     # strings are left as-is
+    """
+    Tests that the transform function correctly handles base64-encoded file input fields, leaving strings unchanged and converting pathlib.Path and file-like objects to base64 strings.
+    """
     assert await transform({"foo": "bar"}, TypedDictBase64Input, use_async) == {"foo": "bar"}
 
     # pathlib.Path is automatically converted to base64
@@ -438,6 +546,9 @@ async def test_base64_file_input(use_async: bool) -> None:
 @pytest.mark.asyncio
 async def test_transform_skipping(use_async: bool) -> None:
     # lists of ints are left as-is
+    """
+    Test that lists of integers are returned unchanged, while iterables of integers are converted to lists during transformation.
+    """
     data = [1, 2, 3]
     assert await transform(data, List[int], use_async) is data
 
@@ -449,5 +560,8 @@ async def test_transform_skipping(use_async: bool) -> None:
 @parametrize
 @pytest.mark.asyncio
 async def test_strips_notgiven(use_async: bool) -> None:
+    """
+    Tests that fields with the sentinel value `NOT_GIVEN` are omitted from the transformed output, while valid fields are included.
+    """
     assert await transform({"foo_bar": "bar"}, Foo1, use_async) == {"fooBar": "bar"}
     assert await transform({"foo_bar": NOT_GIVEN}, Foo1, use_async) == {}

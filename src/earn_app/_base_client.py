@@ -126,21 +126,39 @@ class PageInfo:
         self,
         *,
         url: URL,
-    ) -> None: ...
+    ) -> None: """
+        Initialize PageInfo with a URL for the next page request.
+        
+        Parameters:
+            url (URL): The URL to use for fetching the next page.
+        """
+        ...
 
     @overload
     def __init__(
         self,
         *,
         params: Query,
-    ) -> None: ...
+    ) -> None: """
+        Initialize PageInfo with query parameters for the next page request.
+        
+        Parameters:
+            params (Query): Query parameters to use for the next page.
+        """
+        ...
 
     @overload
     def __init__(
         self,
         *,
         json: Body,
-    ) -> None: ...
+    ) -> None: """
+        Initialize PageInfo with a JSON body for the next page request.
+        
+        Parameters:
+            json (Body): The JSON body to use for the next page request.
+        """
+        ...
 
     def __init__(
         self,
@@ -149,12 +167,25 @@ class PageInfo:
         json: Body | NotGiven = NOT_GIVEN,
         params: Query | NotGiven = NOT_GIVEN,
     ) -> None:
+        """
+        Initialize a PageInfo instance specifying how to request the next page in a paginated API.
+        
+        Exactly one of `url`, `params`, or `json` should be provided to indicate the next page's request details.
+        
+        Parameters:
+            url (URL | NotGiven): The full URL for the next page request.
+            json (Body | NotGiven): The JSON body to use for the next page request.
+            params (Query | NotGiven): The query parameters for the next page request.
+        """
         self.url = url
         self.json = json
         self.params = params
 
     @override
     def __repr__(self) -> str:
+        """
+        Return a string representation of the PageInfo instance, indicating which attribute (url, json, or params) is set.
+        """
         if self.url:
             return f"{self.__class__.__name__}(url={self.url})"
         if self.json:
@@ -178,21 +209,52 @@ class BasePage(GenericModel, Generic[_T]):
     _model: Type[_T] = PrivateAttr()
 
     def has_next_page(self) -> bool:
+        """
+        Return whether there is a next page available in the pagination sequence.
+        
+        Returns:
+            bool: True if the current page contains items and next page information is available; otherwise, False.
+        """
         items = self._get_page_items()
         if not items:
             return False
         return self.next_page_info() is not None
 
-    def next_page_info(self) -> Optional[PageInfo]: ...
+    def next_page_info(self) -> Optional[PageInfo]: """
+Return information required to request the next page of results, or None if there is no next page.
+
+Returns:
+    PageInfo or None: Details for constructing the next page request, or None if no further pages are available.
+"""
+...
 
     def _get_page_items(self) -> Iterable[_T]:  # type: ignore[empty-body]
+        """
+        Return an iterable of items contained on the current page.
+        
+        This method must be implemented by subclasses to provide access to the items for the current page in a paginated response.
+        """
         ...
 
     def _params_from_url(self, url: URL) -> httpx.QueryParams:
         # TODO: do we have to preprocess params here?
+        """
+        Merge the stored request parameters with the query parameters extracted from the given URL.
+        
+        Returns:
+            httpx.QueryParams: Combined query parameters from the stored options and the provided URL.
+        """
         return httpx.QueryParams(cast(Any, self._options.params)).merge(url.params)
 
     def _info_to_options(self, info: PageInfo) -> FinalRequestOptions:
+        """
+        Converts a PageInfo object into updated request options for fetching the next page.
+        
+        Merges pagination details from the provided PageInfo into a copy of the current request options, updating query parameters, URL, or JSON body as appropriate. Raises an error if the PageInfo is in an unexpected state or if non-mapping JSON data is encountered.
+        
+        Returns:
+            FinalRequestOptions: The updated request options for the next page request.
+        """
         options = model_copy(self._options)
         options._strip_raw_response_header()
 
@@ -232,6 +294,11 @@ class BaseSyncPage(BasePage[_T], Generic[_T]):
         model: Type[_T],
         options: FinalRequestOptions,
     ) -> None:
+        """
+        Set the internal client, model, and request options for the page instance.
+        
+        This method also initializes the Pydantic private attributes dictionary if using Pydantic v2 and it is not already set.
+        """
         if PYDANTIC_V2 and getattr(self, "__pydantic_private__", None) is None:
             self.__pydantic_private__ = {}
 
@@ -248,11 +315,23 @@ class BaseSyncPage(BasePage[_T], Generic[_T]):
     # to cast a model to a dictionary, model.dict(), which is used internally
     # by pydantic.
     def __iter__(self) -> Iterator[_T]:  # type: ignore
+        """
+        Iterate over all items across paginated results.
+        
+        Yields:
+            Each item from all pages in sequence.
+        """
         for page in self.iter_pages():
             for item in page._get_page_items():
                 yield item
 
     def iter_pages(self: SyncPageT) -> Iterator[SyncPageT]:
+        """
+        Iterates over all pages in a paginated API response.
+        
+        Yields:
+            Each page object in sequence until no further pages are available.
+        """
         page = self
         while True:
             yield page
@@ -262,6 +341,15 @@ class BaseSyncPage(BasePage[_T], Generic[_T]):
                 return
 
     def get_next_page(self: SyncPageT) -> SyncPageT:
+        """
+        Retrieves the next page of results in a paginated API response.
+        
+        Returns:
+            SyncPageT: The next page object.
+        
+        Raises:
+            RuntimeError: If there is no next page available. Call `.has_next_page()` before invoking this method.
+        """
         info = self.next_page_info()
         if not info:
             raise RuntimeError(
@@ -280,15 +368,36 @@ class AsyncPaginator(Generic[_T, AsyncPageT]):
         page_cls: Type[AsyncPageT],
         model: Type[_T],
     ) -> None:
+        """
+        Initialize the asynchronous paginator with the client, request options, page class, and item model type.
+        
+        Parameters:
+            client (AsyncAPIClient): The asynchronous API client used to fetch pages.
+            options (FinalRequestOptions): The request options for the initial page.
+            page_cls (Type[AsyncPageT]): The class used to represent each page of results.
+            model (Type[_T]): The type of items contained in each page.
+        """
         self._model = model
         self._client = client
         self._options = options
         self._page_cls = page_cls
 
     def __await__(self) -> Generator[Any, None, AsyncPageT]:
+        """
+        Allows awaiting the paginator to retrieve the first page asynchronously.
+        
+        Returns:
+            The first page of results as an instance of the asynchronous page type.
+        """
         return self._get_page().__await__()
 
     async def _get_page(self) -> AsyncPageT:
+        """
+        Fetches a page of results asynchronously and injects client, model, and options into the page instance.
+        
+        Returns:
+            AsyncPageT: The page object with private attributes set for further pagination.
+        """
         def _parser(resp: AsyncPageT) -> AsyncPageT:
             resp._set_private_attributes(
                 model=self._model,
@@ -303,6 +412,12 @@ class AsyncPaginator(Generic[_T, AsyncPageT]):
 
     async def __aiter__(self) -> AsyncIterator[_T]:
         # https://github.com/microsoft/pyright/issues/3464
+        """
+        Asynchronously iterates over all items across paginated API responses.
+        
+        Yields:
+            Items of type `_T` from each page, iterating through all available pages asynchronously.
+        """
         page = cast(
             AsyncPageT,
             await self,  # type: ignore
@@ -320,6 +435,11 @@ class BaseAsyncPage(BasePage[_T], Generic[_T]):
         client: AsyncAPIClient,
         options: FinalRequestOptions,
     ) -> None:
+        """
+        Set the internal model, client, and request options for the asynchronous page instance.
+        
+        This method is used to inject the expected item model type, the asynchronous API client, and the request options into the page object, typically after it is constructed.
+        """
         if PYDANTIC_V2 and getattr(self, "__pydantic_private__", None) is None:
             self.__pydantic_private__ = {}
 
@@ -328,11 +448,23 @@ class BaseAsyncPage(BasePage[_T], Generic[_T]):
         self._options = options
 
     async def __aiter__(self) -> AsyncIterator[_T]:
+        """
+        Asynchronously iterates over all items across paginated API responses.
+        
+        Yields:
+            Items of type `_T` from each page, one at a time, until all pages are exhausted.
+        """
         async for page in self.iter_pages():
             for item in page._get_page_items():
                 yield item
 
     async def iter_pages(self: AsyncPageT) -> AsyncIterator[AsyncPageT]:
+        """
+        Asynchronously iterates over all pages, yielding each page in sequence until no next page is available.
+        
+        Yields:
+            AsyncPageT: The current page object for each iteration.
+        """
         page = self
         while True:
             yield page
@@ -342,6 +474,15 @@ class BaseAsyncPage(BasePage[_T], Generic[_T]):
                 return
 
     async def get_next_page(self: AsyncPageT) -> AsyncPageT:
+        """
+        Asynchronously retrieves the next page of results in a paginated API response.
+        
+        Returns:
+            AsyncPageT: The next page object.
+        
+        Raises:
+            RuntimeError: If there is no next page available. Check `.has_next_page()` before calling this method.
+        """
         info = self.next_page_info()
         if not info:
             raise RuntimeError(
@@ -377,6 +518,12 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         custom_headers: Mapping[str, str] | None = None,
         custom_query: Mapping[str, object] | None = None,
     ) -> None:
+        """
+        Initialize the base HTTP client with configuration for versioning, base URL, retries, timeouts, and custom headers or query parameters.
+        
+        Raises:
+            TypeError: If `max_retries` is set to None.
+        """
         self._version = version
         self._base_url = self._enforce_trailing_slash(URL(base_url))
         self.max_retries = max_retries
@@ -393,6 +540,12 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
             )
 
     def _enforce_trailing_slash(self, url: URL) -> URL:
+        """
+        Ensure that the given URL ends with a trailing slash.
+        
+        Returns:
+            URL: The original URL if it already ends with a slash, otherwise a copy with a trailing slash appended.
+        """
         if url.raw_path.endswith(b"/"):
             return url
         return url.copy_with(raw_path=url.raw_path + b"/")
@@ -401,6 +554,11 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         self,
         response: httpx.Response,
     ) -> APIStatusError:
+        """
+        Create an APIStatusError from an HTTP response, extracting error details from the response body if available.
+        
+        Attempts to parse the response body as JSON for detailed error information; falls back to plain text or status code if parsing fails.
+        """
         if response.is_closed and not response.is_stream_consumed:
             # We can't read the response body as it has been closed
             # before it was read. This can happen if an event hook
@@ -426,9 +584,24 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         body: object,
         response: httpx.Response,
     ) -> _exceptions.APIStatusError:
+        """
+        Raises an APIStatusError for an HTTP response with an error.
+        
+        This method must be implemented by subclasses to construct and raise an APIStatusError using the provided error message, response body, and HTTP response.
+        """
         raise NotImplementedError()
 
     def _build_headers(self, options: FinalRequestOptions, *, retries_taken: int = 0) -> httpx.Headers:
+        """
+        Construct and return HTTP headers for a request, merging defaults, custom headers, idempotency keys, and retry metadata.
+        
+        Parameters:
+            options (FinalRequestOptions): The finalized request options containing custom headers, idempotency key, and timeout.
+            retries_taken (int): The number of retry attempts made for this request.
+        
+        Returns:
+            httpx.Headers: The complete set of headers to include with the HTTP request.
+        """
         custom_headers = options.headers or {}
         headers_dict = _merge_mappings(self.default_headers, custom_headers)
         self._validate_headers(headers_dict, custom_headers)
@@ -456,8 +629,13 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
 
     def _prepare_url(self, url: str) -> URL:
         """
-        Merge a URL argument together with any 'base_url' on the client,
-        to create the URL used for the outgoing request.
+        Combines the provided URL with the client's base URL if the input is relative, returning the absolute URL for the request.
+        
+        Parameters:
+            url (str): The URL to merge, which may be relative or absolute.
+        
+        Returns:
+            URL: The resulting absolute URL to be used for the outgoing request.
         """
         # Copied from httpx's `_merge_url` method.
         merge_url = URL(url)
@@ -468,6 +646,9 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         return merge_url
 
     def _make_sse_decoder(self) -> SSEDecoder | SSEBytesDecoder:
+        """
+        Return a new instance of the default server-sent events (SSE) decoder.
+        """
         return SSEDecoder()
 
     def _build_request(
@@ -476,6 +657,18 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         *,
         retries_taken: int = 0,
     ) -> httpx.Request:
+        """
+        Constructs an `httpx.Request` object with merged headers, parameters, and body, handling multipart form data and custom content types.
+        
+        If the request is a multipart form submission, ensures proper encoding and boundary handling for compatibility with `httpx` and server requirements. Merges default and custom headers and parameters, serializes JSON or multipart data as needed, and applies any necessary workarounds for known HTTPX issues. Returns a fully prepared request ready to be sent by the HTTP client.
+        
+        Parameters:
+            options (FinalRequestOptions): The finalized request options including method, URL, headers, parameters, body, files, and timeout.
+            retries_taken (int, optional): The number of retry attempts already made for this request. Defaults to 0.
+        
+        Returns:
+            httpx.Request: The constructed HTTP request object.
+        """
         if log.isEnabledFor(logging.DEBUG):
             log.debug("Request options: %s", model_dump(options, exclude_unset=True))
 
@@ -546,6 +739,11 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         )
 
     def _serialize_multipartform(self, data: Mapping[object, object]) -> dict[str, object]:
+        """
+        Serialize a mapping into a dictionary suitable for multipart form data submission.
+        
+        Converts nested or repeated fields into a format compatible with HTTP multipart form encoding, ensuring that multiple values for the same key are represented as lists.
+        """
         items = self.qs.stringify_items(
             # TODO: type ignore is required as stringify_items is well typed but we can't be
             # well typed without heavy validation.
@@ -576,6 +774,11 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         return serialized
 
     def _maybe_override_cast_to(self, cast_to: type[ResponseT], options: FinalRequestOptions) -> type[ResponseT]:
+        """
+        Checks for a temporary header to override the response type and updates headers accordingly.
+        
+        If the override header is present in the request options, returns the specified type and removes the header from the options; otherwise, returns the original type.
+        """
         if not is_given(options.headers):
             return cast_to
 
@@ -593,6 +796,12 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         return cast_to
 
     def _should_stream_response_body(self, request: httpx.Request) -> bool:
+        """
+        Determine whether the response body for the given request should be streamed.
+        
+        Returns:
+            bool: True if the request header indicates streaming is requested; otherwise, False.
+        """
         return request.headers.get(RAW_RESPONSE_HEADER) == "stream"  # type: ignore[no-any-return]
 
     def _process_response_data(
@@ -602,6 +811,19 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         cast_to: type[ResponseT],
         response: httpx.Response,
     ) -> ResponseT:
+        """
+        Converts raw response data into the specified type, validating or constructing as needed.
+        
+        If the target type implements `ModelBuilderProtocol`, its `build` method is used. If strict response validation is enabled, the data is validated against the target type; otherwise, the type is constructed directly. Raises `APIResponseValidationError` if validation fails.
+        
+        Parameters:
+            data (object): The parsed response data to process.
+            cast_to (type[ResponseT]): The type to which the data should be converted.
+            response (httpx.Response): The original HTTP response.
+        
+        Returns:
+            ResponseT: The processed and validated response data.
+        """
         if data is None:
             return cast(ResponseT, None)
 
@@ -621,18 +843,36 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
 
     @property
     def qs(self) -> Querystring:
+        """
+        Return a new instance of the query string helper.
+        
+        Returns:
+        	Querystring: An object for building and manipulating URL query strings.
+        """
         return Querystring()
 
     @property
     def custom_auth(self) -> httpx.Auth | None:
+        """
+        Returns the custom authentication handler for HTTP requests, or None if not set.
+        """
         return None
 
     @property
     def auth_headers(self) -> dict[str, str]:
+        """
+        Return a dictionary of authentication headers to include in each request.
+        
+        Returns:
+            dict[str, str]: Authentication headers as key-value pairs. Defaults to an empty dictionary.
+        """
         return {}
 
     @property
     def default_headers(self) -> dict[str, str | Omit]:
+        """
+        Return the default HTTP headers for requests, including content type, user agent, platform, authentication, and any custom headers.
+        """
         return {
             "Accept": "application/json",
             "Content-Type": "application/json",
@@ -644,6 +884,12 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
 
     @property
     def default_query(self) -> dict[str, object]:
+        """
+        Return the default query parameters for requests, including any custom query values set on the client.
+        
+        Returns:
+            dict[str, object]: The default query parameters to include with each request.
+        """
         return {
             **self._custom_query,
         }
@@ -653,35 +899,52 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         headers: Headers,  # noqa: ARG002
         custom_headers: Headers,  # noqa: ARG002
     ) -> None:
-        """Validate the given default headers and custom headers.
-
-        Does nothing by default.
+        """
+        Validates the provided default and custom headers.
+        
+        This method is a no-op by default and can be overridden to implement custom header validation logic.
         """
         return
 
     @property
     def user_agent(self) -> str:
+        """
+        Return the default user agent string for the client, including the class name and package version.
+        """
         return f"{self.__class__.__name__}/Python {self._version}"
 
     @property
     def base_url(self) -> URL:
+        """
+        Returns the current base URL used for all API requests.
+        """
         return self._base_url
 
     @base_url.setter
     def base_url(self, url: URL | str) -> None:
+        """
+        Set the base URL for the client, ensuring it ends with a trailing slash.
+        """
         self._base_url = self._enforce_trailing_slash(url if isinstance(url, URL) else URL(url))
 
     def platform_headers(self) -> Dict[str, str]:
         # the actual implementation is in a separate `lru_cache` decorated
         # function because adding `lru_cache` to methods will leak memory
         # https://github.com/python/cpython/issues/88476
+        """
+        Return HTTP headers containing platform and environment metadata for the client instance.
+        
+        Returns:
+            Dict[str, str]: A dictionary of headers describing the client version, operating system, architecture, and Python runtime.
+        """
         return platform_headers(self._version, platform=self._platform)
 
     def _parse_retry_after_header(self, response_headers: Optional[httpx.Headers] = None) -> float | None:
-        """Returns a float of the number of seconds (not milliseconds) to wait after retrying, or None if unspecified.
-
-        About the Retry-After header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After
-        See also  https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Retry-After#syntax
+        """
+        Parses the `Retry-After` or `retry-after-ms` headers to determine the number of seconds to wait before retrying a request.
+        
+        Returns:
+            float | None: The number of seconds to wait, or None if no retry delay is specified.
         """
         if response_headers is None:
             return None
@@ -717,6 +980,19 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         options: FinalRequestOptions,
         response_headers: Optional[httpx.Headers] = None,
     ) -> float:
+        """
+        Calculate the delay before the next retry attempt using exponential backoff, optional server-suggested delay, and jitter.
+        
+        If the server provides a `Retry-After` header with a value between 0 and 60 seconds, that value is used. Otherwise, the delay is computed using exponential backoff based on the number of retries already taken, capped to avoid overflow, and includes random jitter to prevent thundering herd problems.
+        
+        Parameters:
+            remaining_retries (int): The number of retries left for the request.
+            options (FinalRequestOptions): The request options, used to determine the maximum allowed retries.
+            response_headers (Optional[httpx.Headers]): HTTP response headers, used to check for server-suggested retry delay.
+        
+        Returns:
+            float: The number of seconds to wait before the next retry attempt.
+        """
         max_retries = options.get_max_retries(self.max_retries)
 
         # If the API asks us to wait a certain amount of time (and it's a reasonable amount), just do what it says.
@@ -737,6 +1013,11 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
 
     def _should_retry(self, response: httpx.Response) -> bool:
         # Note: this is not a standard header
+        """
+        Determine whether a request should be retried based on the HTTP response.
+        
+        Returns True if the response indicates a retry is appropriate, such as when the server sets the `x-should-retry` header to "true", or for specific status codes (408, 409, 429, or any 5xx error). Returns False otherwise.
+        """
         should_retry_header = response.headers.get("x-should-retry")
 
         # If the server explicitly says whether or not to retry, obey.
@@ -771,11 +1052,20 @@ class BaseClient(Generic[_HttpxClientT, _DefaultStreamT]):
         return False
 
     def _idempotency_key(self) -> str:
+        """
+        Generate a unique idempotency key for retryable HTTP requests.
+        
+        Returns:
+            str: A unique idempotency key string.
+        """
         return f"stainless-python-retry-{uuid.uuid4()}"
 
 
 class _DefaultHttpxClient(httpx.Client):
     def __init__(self, **kwargs: Any) -> None:
+        """
+        Initializes the HTTP client with default timeout, connection limits, and redirect-following behavior unless overridden.
+        """
         kwargs.setdefault("timeout", DEFAULT_TIMEOUT)
         kwargs.setdefault("limits", DEFAULT_CONNECTION_LIMITS)
         kwargs.setdefault("follow_redirects", True)
@@ -796,6 +1086,9 @@ else:
 
 class SyncHttpxClientWrapper(DefaultHttpxClient):
     def __del__(self) -> None:
+        """
+        Ensures the client is closed when the object is deleted, suppressing any exceptions during closure.
+        """
         if self.is_closed:
             return
 
@@ -821,6 +1114,19 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         custom_query: Mapping[str, object] | None = None,
         _strict_response_validation: bool,
     ) -> None:
+        """
+        Initializes a synchronous API client with configurable HTTP client, base URL, retry policy, timeout, and custom headers or query parameters.
+        
+        Parameters:
+            version (str): The package or API version string.
+            base_url (str | URL): The base URL for all API requests.
+            max_retries (int, optional): Maximum number of automatic retries for failed requests. Defaults to DEFAULT_MAX_RETRIES.
+            timeout (float | Timeout | None | NotGiven, optional): Request timeout configuration. If not provided, uses the timeout from the provided HTTP client or a default value.
+            http_client (httpx.Client, optional): Custom `httpx.Client` instance to use for HTTP requests. If not provided, a default client is created.
+            custom_headers (Mapping[str, str], optional): Additional headers to include with every request.
+            custom_query (Mapping[str, object], optional): Additional query parameters to include with every request.
+            _strict_response_validation (bool): Whether to enforce strict response validation.
+        """
         if not is_given(timeout):
             # if the user passed in a custom http client with a non-default
             # timeout set then we use that timeout.
@@ -856,12 +1162,14 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         )
 
     def is_closed(self) -> bool:
+        """
+        Return whether the underlying HTTP client is closed.
+        """
         return self._client.is_closed
 
     def close(self) -> None:
-        """Close the underlying HTTPX client.
-
-        The client will *not* be usable after this.
+        """
+        Closes the underlying HTTPX client, rendering the client instance unusable for further requests.
         """
         # If an error is thrown while constructing a client, self._client
         # may not be present
@@ -869,6 +1177,9 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
             self._client.close()
 
     def __enter__(self: _T) -> _T:
+        """
+        Enter the runtime context for the client, returning the client instance itself.
+        """
         return self
 
     def __exit__(
@@ -877,23 +1188,34 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         exc: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
+        """
+        Closes the client when exiting a context manager block.
+        """
         self.close()
 
     def _prepare_options(
         self,
         options: FinalRequestOptions,  # noqa: ARG002
     ) -> FinalRequestOptions:
-        """Hook for mutating the given options"""
+        """
+        Hook for modifying request options before sending a request.
+        
+        Parameters:
+            options (FinalRequestOptions): The original request options to be potentially modified.
+        
+        Returns:
+            FinalRequestOptions: The (possibly modified) request options.
+        """
         return options
 
     def _prepare_request(
         self,
         request: httpx.Request,  # noqa: ARG002
     ) -> None:
-        """This method is used as a callback for mutating the `Request` object
-        after it has been constructed.
-        This is useful for cases where you want to add certain headers based off of
-        the request properties, e.g. `url`, `method` etc.
+        """
+        Callback for mutating the constructed `httpx.Request` object before sending.
+        
+        Override this method to modify the request, such as adding headers based on request properties like URL or method.
         """
         return None
 
@@ -905,7 +1227,19 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         *,
         stream: Literal[True],
         stream_cls: Type[_StreamT],
-    ) -> _StreamT: ...
+    ) -> _StreamT: """
+        Sends an HTTP request and returns a streaming response of the specified type.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The expected response type for parsing the streamed data.
+            options (FinalRequestOptions): The finalized request options including method, URL, headers, and body.
+            stream (Literal[True]): Indicates that the response should be streamed.
+            stream_cls (Type[_StreamT]): The stream class to use for handling the response.
+        
+        Returns:
+            _StreamT: An instance of the specified stream class for consuming the streamed response.
+        """
+        ...
 
     @overload
     def request(
@@ -914,7 +1248,24 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         options: FinalRequestOptions,
         *,
         stream: Literal[False] = False,
-    ) -> ResponseT: ...
+    ) -> ResponseT: """
+        Send an HTTP request and return the response parsed as the specified type.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (FinalRequestOptions): The finalized request options, including method, URL, headers, body, etc.
+            stream (bool, optional): If True, returns a streaming response; otherwise, returns the parsed response. Defaults to False.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type, or a streaming response if requested.
+        
+        Raises:
+            APIStatusError: If the response status code indicates an error.
+            APITimeoutError: If the request times out.
+            APIConnectionError: If a connection error occurs.
+            APIResponseValidationError: If response validation fails when strict mode is enabled.
+        """
+        ...
 
     @overload
     def request(
@@ -924,7 +1275,26 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         *,
         stream: bool = False,
         stream_cls: Type[_StreamT] | None = None,
-    ) -> ResponseT | _StreamT: ...
+    ) -> ResponseT | _StreamT: """
+        Send an HTTP request with the specified options and return the parsed response or a streaming response.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (FinalRequestOptions): The finalized request options including method, URL, headers, and body.
+            stream (bool, optional): If True, returns a streaming response instead of parsing the body. Defaults to False.
+            stream_cls (Type[_StreamT], optional): Custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT: The parsed response object of type `cast_to` if `stream` is False.
+            _StreamT: An instance of the stream class if `stream` is True.
+        
+        Raises:
+            APIStatusError: If the response status code indicates an error.
+            APITimeoutError: If the request times out.
+            APIConnectionError: If a connection error occurs.
+            APIResponseValidationError: If response validation fails when strict mode is enabled.
+        """
+        ...
 
     def request(
         self,
@@ -934,6 +1304,20 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         stream: bool = False,
         stream_cls: type[_StreamT] | None = None,
     ) -> ResponseT | _StreamT:
+        """
+        Send an HTTP request with retry logic and process the response into the specified type.
+        
+        Attempts the request up to the configured maximum number of retries, handling timeouts, connection errors, and retryable HTTP status codes. If streaming is enabled, returns a stream object; otherwise, parses and validates the response into the provided type. Raises custom exceptions for timeouts, connection failures, or non-successful HTTP responses after all retries.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The type to which the response should be parsed and validated.
+            options (FinalRequestOptions): The finalized request options, including method, headers, body, and other settings.
+            stream (bool, optional): If True, returns a streaming response. Defaults to False.
+            stream_cls (type[_StreamT] | None, optional): Custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT | _StreamT: The parsed response object or a stream, depending on the `stream` parameter.
+        """
         cast_to = self._maybe_override_cast_to(cast_to, options)
 
         # create a copy of the options we were given so that if the
@@ -1048,6 +1432,11 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
     def _sleep_for_retry(
         self, *, retries_taken: int, max_retries: int, options: FinalRequestOptions, response: httpx.Response | None
     ) -> None:
+        """
+        Sleeps for a calculated duration before retrying an HTTP request.
+        
+        The sleep duration is determined based on the number of remaining retries, request options, and optional response headers, incorporating exponential backoff and server-suggested delays when available.
+        """
         remaining_retries = max_retries - retries_taken
         if remaining_retries == 1:
             log.debug("1 retry left")
@@ -1069,6 +1458,23 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         stream_cls: type[Stream[Any]] | type[AsyncStream[Any]] | None,
         retries_taken: int = 0,
     ) -> ResponseT:
+        """
+        Processes an HTTP response and returns it as the specified type, handling custom API response classes, streaming, and parsing.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The expected return type, which may be a custom API response class or a model type.
+            options (FinalRequestOptions): The finalized request options used for the request.
+            response (httpx.Response): The HTTP response object to process.
+            stream (bool): Whether the response should be streamed.
+            stream_cls (type[Stream[Any]] | type[AsyncStream[Any]] | None): The stream class to use for streaming responses, if applicable.
+            retries_taken (int, optional): The number of retries attempted for this request.
+        
+        Returns:
+            ResponseT: The processed response, either as a raw HTTP response, a custom API response object, or a parsed model instance, depending on the parameters and response headers.
+        
+        Raises:
+            TypeError: If a custom API response type does not subclass the expected base class.
+        """
         origin = get_origin(cast_to) or cast_to
 
         if (
@@ -1119,6 +1525,17 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         page: Type[SyncPageT],
         options: FinalRequestOptions,
     ) -> SyncPageT:
+        """
+        Requests a paginated API resource and injects client, model, and options into the resulting page object.
+        
+        Parameters:
+            model (Type[object]): The Pydantic model class for items in the page.
+            page (Type[SyncPageT]): The page class to parse the response into.
+            options (FinalRequestOptions): The finalized request options for the API call.
+        
+        Returns:
+            SyncPageT: An instance of the page class with private attributes set for pagination.
+        """
         def _parser(resp: SyncPageT) -> SyncPageT:
             resp._set_private_attributes(
                 client=self,
@@ -1139,7 +1556,17 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         cast_to: Type[ResponseT],
         options: RequestOptions = {},
         stream: Literal[False] = False,
-    ) -> ResponseT: ...
+    ) -> ResponseT: """
+        Sends a synchronous HTTP GET request to the specified path and returns the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path to request, relative to the client's base URL.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type.
+        """
+        ...
 
     @overload
     def get(
@@ -1150,7 +1577,20 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         options: RequestOptions = {},
         stream: Literal[True],
         stream_cls: type[_StreamT],
-    ) -> _StreamT: ...
+    ) -> _StreamT: """
+        Sends a GET request to the specified path and returns a streaming response.
+        
+        Parameters:
+            path (str): The endpoint path to send the GET request to.
+            cast_to (Type[ResponseT]): The expected type for response parsing.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            stream (Literal[True]): Indicates that the response should be streamed.
+            stream_cls (type[_StreamT]): The stream class to use for the response.
+        
+        Returns:
+            _StreamT: An instance of the specified stream class for handling the streamed response.
+        """
+        ...
 
     @overload
     def get(
@@ -1161,7 +1601,20 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         options: RequestOptions = {},
         stream: bool,
         stream_cls: type[_StreamT] | None = None,
-    ) -> ResponseT | _StreamT: ...
+    ) -> ResponseT | _StreamT: """
+        Send a synchronous HTTP GET request and return the response as the specified type or as a stream.
+        
+        Parameters:
+            path (str): The relative or absolute URL path for the request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or body.
+            stream (bool): If True, returns a streaming response using the specified stream class.
+            stream_cls (type[_StreamT] | None, optional): Custom stream class to use if streaming is enabled.
+        
+        Returns:
+            ResponseT or _StreamT: The parsed response object or a streaming response, depending on the value of `stream`.
+        """
+        ...
 
     def get(
         self,
@@ -1172,6 +1625,19 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         stream: bool = False,
         stream_cls: type[_StreamT] | None = None,
     ) -> ResponseT | _StreamT:
+        """
+        Send a synchronous HTTP GET request and return the response as the specified type or as a stream.
+        
+        Parameters:
+            path (str): The relative or absolute URL path for the GET request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            stream (bool, optional): If True, returns a streaming response using the specified stream class.
+            stream_cls (type[_StreamT], optional): Custom stream class to use if streaming is enabled.
+        
+        Returns:
+            ResponseT or _StreamT: The parsed response object of type `cast_to`, or a stream object if `stream` is True.
+        """
         opts = FinalRequestOptions.construct(method="get", url=path, **options)
         # cast is required because mypy complains about returning Any even though
         # it understands the type variables
@@ -1187,7 +1653,21 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         options: RequestOptions = {},
         files: RequestFiles | None = None,
         stream: Literal[False] = False,
-    ) -> ResponseT: ...
+    ) -> ResponseT: """
+        Send a POST request to the specified path and return the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path to send the POST request to.
+            cast_to (Type[ResponseT]): The type to parse the response into.
+            body (Body | None): The request body to send, if any.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+            files (RequestFiles | None): Files to include in a multipart/form-data request.
+            stream (Literal[False]): If False, returns the full parsed response.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type.
+        """
+        ...
 
     @overload
     def post(
@@ -1200,7 +1680,21 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         files: RequestFiles | None = None,
         stream: Literal[True],
         stream_cls: type[_StreamT],
-    ) -> _StreamT: ...
+    ) -> _StreamT: """
+        Send a POST request and return a streaming response of the specified type.
+        
+        Parameters:
+            path (str): The endpoint path relative to the base URL.
+            cast_to (Type[ResponseT]): The type to which the response should be cast.
+            body (Body | None): The request body, if any.
+            options (RequestOptions): Additional request options such as headers or query parameters.
+            files (RequestFiles | None): Files to include in a multipart/form-data request.
+            stream_cls (type[_StreamT]): The stream class to use for the response.
+        
+        Returns:
+            _StreamT: An instance of the specified stream class for handling the streaming response.
+        """
+        ...
 
     @overload
     def post(
@@ -1213,7 +1707,22 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         files: RequestFiles | None = None,
         stream: bool,
         stream_cls: type[_StreamT] | None = None,
-    ) -> ResponseT | _StreamT: ...
+    ) -> ResponseT | _StreamT: """
+        Sends a POST request to the specified path and returns the response as the specified type or as a stream.
+        
+        Parameters:
+            path (str): The endpoint path for the POST request.
+            cast_to (Type[ResponseT]): The type to which the response should be cast.
+            body (Body | None): The request body to send, if any.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+            files (RequestFiles | None): Files to include in a multipart/form-data request.
+            stream (bool): Whether to return a streaming response.
+            stream_cls (type[_StreamT] | None): Custom stream class to use if streaming.
+        
+        Returns:
+            ResponseT | _StreamT: The parsed response object or a stream, depending on the `stream` parameter.
+        """
+        ...
 
     def post(
         self,
@@ -1226,6 +1735,20 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         stream: bool = False,
         stream_cls: type[_StreamT] | None = None,
     ) -> ResponseT | _StreamT:
+        """
+        Send a POST request to the specified path and return the response as the given type or as a stream.
+        
+        Parameters:
+            path (str): The endpoint path or URL to send the POST request to.
+            cast_to (Type[ResponseT]): The type to which the response should be cast.
+            body (Body | None): The request body to send as JSON, if any.
+            files (RequestFiles | None): Files to include in the request as multipart/form-data, if any.
+            stream (bool): If True, returns a streaming response using the specified stream class.
+            stream_cls (type[_StreamT] | None): Custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT | _StreamT: The parsed response object of type `cast_to`, or a stream if `stream` is True.
+        """
         opts = FinalRequestOptions.construct(
             method="post", url=path, json_data=body, files=to_httpx_files(files), **options
         )
@@ -1239,6 +1762,18 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         body: Body | None = None,
         options: RequestOptions = {},
     ) -> ResponseT:
+        """
+        Send a PATCH request to the specified path and parse the response into the given type.
+        
+        Parameters:
+            path (str): The endpoint path for the PATCH request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON-serializable body to include in the request.
+            options (RequestOptions): Optional request configuration.
+        
+        Returns:
+            ResponseT: The parsed response object of the specified type.
+        """
         opts = FinalRequestOptions.construct(method="patch", url=path, json_data=body, **options)
         return self.request(cast_to, opts)
 
@@ -1251,6 +1786,19 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         files: RequestFiles | None = None,
         options: RequestOptions = {},
     ) -> ResponseT:
+        """
+        Send a PUT request to the specified path and parse the response into the given type.
+        
+        Parameters:
+            path (str): The endpoint path or URL for the PUT request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON-serializable request body.
+            files (RequestFiles | None): Optional files to include as multipart form data.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+        
+        Returns:
+            ResponseT: The parsed response object of the specified type.
+        """
         opts = FinalRequestOptions.construct(
             method="put", url=path, json_data=body, files=to_httpx_files(files), **options
         )
@@ -1264,6 +1812,18 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         body: Body | None = None,
         options: RequestOptions = {},
     ) -> ResponseT:
+        """
+        Send a DELETE request to the specified path and return the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path for the DELETE request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON body to include in the request.
+            options (RequestOptions): Additional request options.
+        
+        Returns:
+            ResponseT: The parsed response object of the specified type.
+        """
         opts = FinalRequestOptions.construct(method="delete", url=path, json_data=body, **options)
         return self.request(cast_to, opts)
 
@@ -1277,12 +1837,29 @@ class SyncAPIClient(BaseClient[httpx.Client, Stream[Any]]):
         options: RequestOptions = {},
         method: str = "get",
     ) -> SyncPageT:
+        """
+        Retrieve a paginated API resource and return the first page of results.
+        
+        Parameters:
+            path (str): The API endpoint path.
+            model (Type[object]): The data model class for items in the response.
+            page (Type[SyncPageT]): The page class to use for pagination.
+            body (Body | None, optional): The request body for methods like POST or PUT.
+            options (RequestOptions, optional): Additional request options such as headers or query parameters.
+            method (str, optional): The HTTP method to use (default is "get").
+        
+        Returns:
+            SyncPageT: The first page of results as an instance of the specified page class.
+        """
         opts = FinalRequestOptions.construct(method=method, url=path, json_data=body, **options)
         return self._request_api_list(model, page, opts)
 
 
 class _DefaultAsyncHttpxClient(httpx.AsyncClient):
     def __init__(self, **kwargs: Any) -> None:
+        """
+        Initializes the HTTP client with default timeout, connection limits, and redirect-following behavior unless overridden.
+        """
         kwargs.setdefault("timeout", DEFAULT_TIMEOUT)
         kwargs.setdefault("limits", DEFAULT_CONNECTION_LIMITS)
         kwargs.setdefault("follow_redirects", True)
@@ -1295,11 +1872,17 @@ except ImportError:
 
     class _DefaultAioHttpClient(httpx.AsyncClient):
         def __init__(self, **_kwargs: Any) -> None:
+            """
+            Raises a RuntimeError indicating that the aiohttp client requires installation with the `aiohttp` extra.
+            """
             raise RuntimeError("To use the aiohttp client you must have installed the package with the `aiohttp` extra")
 else:
 
     class _DefaultAioHttpClient(httpx_aiohttp.HttpxAiohttpClient):  # type: ignore
         def __init__(self, **kwargs: Any) -> None:
+            """
+            Initializes the HTTP client with default timeout, connection limits, and redirect-following behavior unless overridden.
+            """
             kwargs.setdefault("timeout", DEFAULT_TIMEOUT)
             kwargs.setdefault("limits", DEFAULT_CONNECTION_LIMITS)
             kwargs.setdefault("follow_redirects", True)
@@ -1325,6 +1908,11 @@ else:
 
 class AsyncHttpxClientWrapper(DefaultAsyncHttpxClient):
     def __del__(self) -> None:
+        """
+        Ensures the asynchronous HTTP client is closed upon object deletion.
+        
+        If the client is not already closed, attempts to schedule its closure using the running event loop. Any exceptions during this process are silently ignored.
+        """
         if self.is_closed:
             return
 
@@ -1351,6 +1939,12 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         custom_headers: Mapping[str, str] | None = None,
         custom_query: Mapping[str, object] | None = None,
     ) -> None:
+        """
+        Initialize an asynchronous API client with configurable base URL, version, retry policy, timeout, and optional custom HTTP client, headers, and query parameters.
+        
+        Raises:
+            TypeError: If `http_client` is provided and is not an instance of `httpx.AsyncClient`.
+        """
         if not is_given(timeout):
             # if the user passed in a custom http client with a non-default
             # timeout set then we use that timeout.
@@ -1386,16 +1980,26 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         )
 
     def is_closed(self) -> bool:
+        """
+        Return whether the underlying HTTP client is closed.
+        """
         return self._client.is_closed
 
     async def close(self) -> None:
-        """Close the underlying HTTPX client.
-
-        The client will *not* be usable after this.
+        """
+        Asynchronously closes the underlying HTTPX client.
+        
+        After calling this method, the client instance cannot be used for further requests.
         """
         await self._client.aclose()
 
     async def __aenter__(self: _T) -> _T:
+        """
+        Enter the asynchronous context manager for this client.
+        
+        Returns:
+            The client instance itself for use within an async with block.
+        """
         return self
 
     async def __aexit__(
@@ -1404,23 +2008,34 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         exc: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
+        """
+        Asynchronously exits the context manager, ensuring the underlying HTTP client is closed.
+        """
         await self.close()
 
     async def _prepare_options(
         self,
         options: FinalRequestOptions,  # noqa: ARG002
     ) -> FinalRequestOptions:
-        """Hook for mutating the given options"""
+        """
+        Asynchronous hook for modifying request options before sending a request.
+        
+        Parameters:
+            options (FinalRequestOptions): The original request options.
+        
+        Returns:
+            FinalRequestOptions: The potentially modified request options.
+        """
         return options
 
     async def _prepare_request(
         self,
         request: httpx.Request,  # noqa: ARG002
     ) -> None:
-        """This method is used as a callback for mutating the `Request` object
-        after it has been constructed.
-        This is useful for cases where you want to add certain headers based off of
-        the request properties, e.g. `url`, `method` etc.
+        """
+        Callback for mutating the constructed `httpx.Request` object before sending.
+        
+        Override this method to modify the request, such as adding headers based on request properties like URL or method.
         """
         return None
 
@@ -1431,7 +2046,24 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         options: FinalRequestOptions,
         *,
         stream: Literal[False] = False,
-    ) -> ResponseT: ...
+    ) -> ResponseT: """
+        Sends an asynchronous HTTP request and returns the response parsed as the specified type.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (FinalRequestOptions): The finalized request options, including URL, headers, parameters, and body.
+            stream (bool, optional): If True, returns a streaming response; otherwise, returns the parsed response object. Defaults to False.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type, or a streaming response if `stream` is True.
+        
+        Raises:
+            APIStatusError: If the response status code indicates an error.
+            APITimeoutError: If the request times out.
+            APIConnectionError: If a connection error occurs.
+            APIResponseValidationError: If response validation fails and strict validation is enabled.
+        """
+        ...
 
     @overload
     async def request(
@@ -1441,7 +2073,19 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         *,
         stream: Literal[True],
         stream_cls: type[_AsyncStreamT],
-    ) -> _AsyncStreamT: ...
+    ) -> _AsyncStreamT: """
+        Send an asynchronous HTTP request and return a streaming response.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The expected response type for parsing.
+            options (FinalRequestOptions): The finalized request options.
+            stream (Literal[True]): Indicates that the response should be streamed.
+            stream_cls (type[_AsyncStreamT]): The stream class to use for the response.
+        
+        Returns:
+            _AsyncStreamT: An asynchronous stream object for consuming the response body.
+        """
+        ...
 
     @overload
     async def request(
@@ -1451,7 +2095,19 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         *,
         stream: bool,
         stream_cls: type[_AsyncStreamT] | None = None,
-    ) -> ResponseT | _AsyncStreamT: ...
+    ) -> ResponseT | _AsyncStreamT: """
+        Sends an asynchronous HTTP request and returns the parsed response or a streaming response.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (FinalRequestOptions): The finalized request options including method, URL, headers, and body.
+            stream (bool): If True, returns a streaming response; otherwise, returns the parsed response.
+            stream_cls (type[_AsyncStreamT] | None): Optional custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT | _AsyncStreamT: The parsed response object or a streaming response, depending on the `stream` flag.
+        """
+        ...
 
     async def request(
         self,
@@ -1461,6 +2117,23 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         stream: bool = False,
         stream_cls: type[_AsyncStreamT] | None = None,
     ) -> ResponseT | _AsyncStreamT:
+        """
+        Sends an asynchronous HTTP request with retry logic and processes the response.
+        
+        Parameters:
+            cast_to (Type[ResponseT]): The expected type to cast the response to.
+            options (FinalRequestOptions): The finalized request options.
+            stream (bool, optional): Whether to stream the response body. Defaults to False.
+            stream_cls (type[_AsyncStreamT] | None, optional): Custom stream class for streaming responses.
+        
+        Returns:
+            ResponseT | _AsyncStreamT: The processed response, either as the specified type or as a stream if streaming is enabled.
+        
+        Raises:
+            APITimeoutError: If the request times out and all retries are exhausted.
+            APIConnectionError: If a connection error occurs and all retries are exhausted.
+            APIStatusError: If a non-retryable HTTP error status is returned.
+        """
         if self._platform is None:
             # `get_platform` can make blocking IO calls so we
             # execute it earlier while we are in an async context
@@ -1580,6 +2253,11 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
     async def _sleep_for_retry(
         self, *, retries_taken: int, max_retries: int, options: FinalRequestOptions, response: httpx.Response | None
     ) -> None:
+        """
+        Asynchronously waits for a calculated delay before retrying a failed HTTP request.
+        
+        The delay duration is determined based on the number of remaining retries, request options, and optional response headers, including support for server-suggested retry intervals.
+        """
         remaining_retries = max_retries - retries_taken
         if remaining_retries == 1:
             log.debug("1 retry left")
@@ -1601,6 +2279,18 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         stream_cls: type[Stream[Any]] | type[AsyncStream[Any]] | None,
         retries_taken: int = 0,
     ) -> ResponseT:
+        """
+        Processes an HTTP response and returns it as the specified type, handling custom API response classes and streaming.
+        
+        Parameters:
+        	cast_to (Type[ResponseT]): The target type to cast the response to.
+        
+        Returns:
+        	ResponseT: The processed response, either as a raw HTTPX response, a custom API response class, or a parsed model instance.
+        
+        Raises:
+        	TypeError: If a custom API response class does not subclass AsyncAPIResponse.
+        """
         origin = get_origin(cast_to) or cast_to
 
         if (
@@ -1651,6 +2341,17 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         page: Type[AsyncPageT],
         options: FinalRequestOptions,
     ) -> AsyncPaginator[_T, AsyncPageT]:
+        """
+        Return an asynchronous paginator for iterating over a paginated API resource.
+        
+        Parameters:
+            model: The Pydantic model type representing items in the paginated response.
+            page: The page class implementing asynchronous pagination logic.
+            options: The finalized request options for the API call.
+        
+        Returns:
+            An AsyncPaginator instance for asynchronous iteration over paginated results.
+        """
         return AsyncPaginator(client=self, options=options, page_cls=page, model=model)
 
     @overload
@@ -1661,7 +2362,19 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         cast_to: Type[ResponseT],
         options: RequestOptions = {},
         stream: Literal[False] = False,
-    ) -> ResponseT: ...
+    ) -> ResponseT: """
+        Sends an asynchronous HTTP GET request to the specified path and returns the response parsed as the given type.
+        
+        Parameters:
+            path (str): The relative or absolute URL path for the GET request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            stream (Literal[False], optional): If False, the response body is fully read and parsed (streaming is not supported for GET in this overload).
+        
+        Returns:
+            ResponseT: The parsed response object of the specified type.
+        """
+        ...
 
     @overload
     async def get(
@@ -1672,7 +2385,20 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         options: RequestOptions = {},
         stream: Literal[True],
         stream_cls: type[_AsyncStreamT],
-    ) -> _AsyncStreamT: ...
+    ) -> _AsyncStreamT: """
+        Sends an asynchronous HTTP GET request and returns a streaming response.
+        
+        Parameters:
+            path (str): The URL path for the GET request.
+            cast_to (Type[ResponseT]): The expected response type for parsing.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            stream (Literal[True]): Indicates that the response should be streamed.
+            stream_cls (type[_AsyncStreamT]): The class to use for streaming the response.
+        
+        Returns:
+            _AsyncStreamT: An instance of the specified stream class for handling the streamed response.
+        """
+        ...
 
     @overload
     async def get(
@@ -1683,7 +2409,20 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         options: RequestOptions = {},
         stream: bool,
         stream_cls: type[_AsyncStreamT] | None = None,
-    ) -> ResponseT | _AsyncStreamT: ...
+    ) -> ResponseT | _AsyncStreamT: """
+        Sends an asynchronous HTTP GET request to the specified path and returns the parsed response or a streaming response.
+        
+        Parameters:
+            path (str): The relative or absolute URL path for the GET request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            stream (bool): If True, returns a streaming response using the specified stream class.
+            stream_cls (type[_AsyncStreamT] | None, optional): Custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT | _AsyncStreamT: The parsed response object of type `cast_to`, or a streaming response if `stream` is True.
+        """
+        ...
 
     async def get(
         self,
@@ -1694,6 +2433,19 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         stream: bool = False,
         stream_cls: type[_AsyncStreamT] | None = None,
     ) -> ResponseT | _AsyncStreamT:
+        """
+        Sends an asynchronous HTTP GET request to the specified path and returns the parsed response or a streaming response.
+        
+        Parameters:
+            path (str): The endpoint path or URL to send the GET request to.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            stream (bool, optional): If True, returns a streaming response instead of parsing the body.
+            stream_cls (type[_AsyncStreamT], optional): Custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT | _AsyncStreamT: The parsed response object or a streaming response, depending on the `stream` flag.
+        """
         opts = FinalRequestOptions.construct(method="get", url=path, **options)
         return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
 
@@ -1707,7 +2459,21 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         files: RequestFiles | None = None,
         options: RequestOptions = {},
         stream: Literal[False] = False,
-    ) -> ResponseT: ...
+    ) -> ResponseT: """
+        Send an asynchronous HTTP POST request to the specified path and return the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path to send the POST request to.
+            cast_to (Type[ResponseT]): The type to parse the response into.
+            body (Body | None): The request body to send, if any.
+            files (RequestFiles | None): Files to include in the request, if any.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+            stream (Literal[False]): If False, returns the full parsed response.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type.
+        """
+        ...
 
     @overload
     async def post(
@@ -1720,7 +2486,22 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         options: RequestOptions = {},
         stream: Literal[True],
         stream_cls: type[_AsyncStreamT],
-    ) -> _AsyncStreamT: ...
+    ) -> _AsyncStreamT: """
+        Send an asynchronous HTTP POST request and return a streaming response.
+        
+        Parameters:
+            path (str): The endpoint path to send the request to.
+            cast_to (Type[ResponseT]): The expected response type for parsing.
+            body (Body | None): The request body to send, if any.
+            files (RequestFiles | None): Files to include in a multipart/form-data request.
+            options (RequestOptions): Additional request options such as headers or query parameters.
+            stream (Literal[True]): Indicates that the response should be streamed.
+            stream_cls (type[_AsyncStreamT]): The stream class to use for the response.
+        
+        Returns:
+            _AsyncStreamT: An asynchronous stream object for reading the response body.
+        """
+        ...
 
     @overload
     async def post(
@@ -1733,7 +2514,22 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         options: RequestOptions = {},
         stream: bool,
         stream_cls: type[_AsyncStreamT] | None = None,
-    ) -> ResponseT | _AsyncStreamT: ...
+    ) -> ResponseT | _AsyncStreamT: """
+        Send an asynchronous HTTP POST request to the specified path.
+        
+        Parameters:
+            path (str): The endpoint path for the POST request.
+            cast_to (Type[ResponseT]): The type to which the response should be cast.
+            body (Body | None): The request body to send, if any.
+            files (RequestFiles | None): Files to include in the request, if any.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+            stream (bool): Whether to stream the response.
+            stream_cls (type[_AsyncStreamT] | None): Custom stream class to use if streaming.
+        
+        Returns:
+            ResponseT | _AsyncStreamT: The parsed response object or a stream if streaming is enabled.
+        """
+        ...
 
     async def post(
         self,
@@ -1746,6 +2542,21 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         stream: bool = False,
         stream_cls: type[_AsyncStreamT] | None = None,
     ) -> ResponseT | _AsyncStreamT:
+        """
+        Sends an asynchronous HTTP POST request to the specified path.
+        
+        Parameters:
+            path (str): The endpoint path or URL to send the POST request to.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON-serializable request body.
+            files (RequestFiles | None): Optional files to include in the request as multipart form data.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+            stream (bool): If True, returns a streaming response using the specified stream class.
+            stream_cls (type[_AsyncStreamT] | None): Custom stream class to use for streaming responses.
+        
+        Returns:
+            ResponseT | _AsyncStreamT: The parsed response object or a streaming response, depending on the `stream` flag.
+        """
         opts = FinalRequestOptions.construct(
             method="post", url=path, json_data=body, files=await async_to_httpx_files(files), **options
         )
@@ -1759,6 +2570,18 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         body: Body | None = None,
         options: RequestOptions = {},
     ) -> ResponseT:
+        """
+        Send an asynchronous HTTP PATCH request to the specified path and return the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path for the PATCH request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON-serializable body to include in the request.
+            options (RequestOptions): Optional additional request options.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type.
+        """
         opts = FinalRequestOptions.construct(method="patch", url=path, json_data=body, **options)
         return await self.request(cast_to, opts)
 
@@ -1771,6 +2594,19 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         files: RequestFiles | None = None,
         options: RequestOptions = {},
     ) -> ResponseT:
+        """
+        Send an asynchronous HTTP PUT request to the specified path and return the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path or URL for the PUT request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON-serializable request body.
+            files (RequestFiles | None): Optional files to include in the request.
+            options (RequestOptions): Additional request options such as headers, query parameters, or timeout.
+        
+        Returns:
+            ResponseT: The response parsed as the specified type.
+        """
         opts = FinalRequestOptions.construct(
             method="put", url=path, json_data=body, files=await async_to_httpx_files(files), **options
         )
@@ -1784,6 +2620,18 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         body: Body | None = None,
         options: RequestOptions = {},
     ) -> ResponseT:
+        """
+        Sends an asynchronous HTTP DELETE request to the specified path and returns the response parsed as the given type.
+        
+        Parameters:
+            path (str): The endpoint path for the DELETE request.
+            cast_to (Type[ResponseT]): The type to which the response should be parsed.
+            body (Body | None): Optional JSON body to include in the request.
+            options (RequestOptions): Additional request options.
+        
+        Returns:
+            ResponseT: The parsed response of the specified type.
+        """
         opts = FinalRequestOptions.construct(method="delete", url=path, json_data=body, **options)
         return await self.request(cast_to, opts)
 
@@ -1797,6 +2645,20 @@ class AsyncAPIClient(BaseClient[httpx.AsyncClient, AsyncStream[Any]]):
         options: RequestOptions = {},
         method: str = "get",
     ) -> AsyncPaginator[_T, AsyncPageT]:
+        """
+        Returns an asynchronous paginator for iterating over a paginated API resource.
+        
+        Parameters:
+            path (str): The API endpoint path.
+            model (Type[_T]): The Pydantic model type for items in the paginated response.
+            page (Type[AsyncPageT]): The page class used to represent each page of results.
+            body (Body | None, optional): The request body for methods that support it.
+            options (RequestOptions, optional): Additional request options such as headers, query parameters, or timeout.
+            method (str, optional): The HTTP method to use (default is "get").
+        
+        Returns:
+            AsyncPaginator[_T, AsyncPageT]: An asynchronous paginator yielding items of type `_T` from each page.
+        """
         opts = FinalRequestOptions.construct(method=method, url=path, json_data=body, **options)
         return self._request_api_list(model, page, opts)
 
@@ -1811,7 +2673,21 @@ def make_request_options(
     timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     post_parser: PostParser | NotGiven = NOT_GIVEN,
 ) -> RequestOptions:
-    """Create a dict of type RequestOptions without keys of NotGiven values."""
+    """
+    Construct a RequestOptions dictionary by combining provided query parameters, headers, body, idempotency key, timeout, and post-parser, omitting any keys with NotGiven values.
+    
+    Parameters:
+        query (dict, optional): Query parameters to include in the request.
+        extra_headers (dict, optional): Additional headers to include.
+        extra_query (dict, optional): Additional query parameters to merge with `query`.
+        extra_body (dict, optional): Additional JSON body to include.
+        idempotency_key (str, optional): Idempotency key for the request.
+        timeout (float or httpx.Timeout or None, optional): Timeout setting for the request.
+        post_parser (callable, optional): Optional post-processing function for the response.
+    
+    Returns:
+        RequestOptions: A dictionary containing the merged request options, excluding any keys with NotGiven values.
+    """
     options: RequestOptions = {}
     if extra_headers is not None:
         options["headers"] = extra_headers
@@ -1840,15 +2716,27 @@ def make_request_options(
 
 class ForceMultipartDict(Dict[str, None]):
     def __bool__(self) -> bool:
+        """
+        Always returns True, making the dictionary instance evaluate as truthy even if empty.
+        """
         return True
 
 
 class OtherPlatform:
     def __init__(self, name: str) -> None:
+        """
+        Initialize the object with the given name.
+        
+        Parameters:
+            name (str): The name to associate with this instance.
+        """
         self.name = name
 
     @override
     def __str__(self) -> str:
+        """
+        Return a string representation of the object in the format 'Other:{name}'.
+        """
         return f"Other:{self.name}"
 
 
@@ -1868,6 +2756,12 @@ Platform = Union[
 
 
 def get_platform() -> Platform:
+    """
+    Detect and return the current operating system platform as a standardized identifier.
+    
+    Returns:
+        Platform: A string or `OtherPlatform` instance representing the detected platform, such as "iOS", "MacOS", "Windows", "Android", "Linux", "FreeBSD", "OpenBSD", or "Unknown". If the platform cannot be matched to a known type, returns an `OtherPlatform` with the raw platform string.
+    """
     try:
         system = platform.system().lower()
         platform_name = platform.platform().lower()
@@ -1911,6 +2805,16 @@ def get_platform() -> Platform:
 
 @lru_cache(maxsize=None)
 def platform_headers(version: str, *, platform: Platform | None) -> Dict[str, str]:
+    """
+    Return a dictionary of platform-specific HTTP headers for API requests.
+    
+    Parameters:
+        version (str): The package version to include in the headers.
+        platform (Platform | None): The platform identifier; if None, the current platform is detected.
+    
+    Returns:
+        Dict[str, str]: A dictionary of headers describing language, package version, OS, architecture, and Python runtime.
+    """
     return {
         "X-Stainless-Lang": "python",
         "X-Stainless-Package-Version": version,
@@ -1923,10 +2827,19 @@ def platform_headers(version: str, *, platform: Platform | None) -> Dict[str, st
 
 class OtherArch:
     def __init__(self, name: str) -> None:
+        """
+        Initialize the object with the given name.
+        
+        Parameters:
+            name (str): The name to associate with this instance.
+        """
         self.name = name
 
     @override
     def __str__(self) -> str:
+        """
+        Return a string representation of the object in the format 'other:{name}'.
+        """
         return f"other:{self.name}"
 
 
@@ -1934,6 +2847,12 @@ Arch = Union[OtherArch, Literal["x32", "x64", "arm", "arm64", "unknown"]]
 
 
 def get_python_runtime() -> str:
+    """
+    Return the name of the current Python runtime implementation.
+    
+    Returns:
+        str: The Python implementation name (e.g., 'CPython', 'PyPy'), or 'unknown' if detection fails.
+    """
     try:
         return platform.python_implementation()
     except Exception:
@@ -1941,6 +2860,11 @@ def get_python_runtime() -> str:
 
 
 def get_python_version() -> str:
+    """
+    Return the current Python interpreter version as a string.
+    
+    If the version cannot be determined, returns "unknown".
+    """
     try:
         return platform.python_version()
     except Exception:
@@ -1948,6 +2872,12 @@ def get_python_version() -> str:
 
 
 def get_architecture() -> Arch:
+    """
+    Detect and return the current system's CPU architecture as an `Arch` type.
+    
+    Returns:
+        Arch: The detected architecture, such as "arm64", "arm", "x64", "x32", or an `OtherArch` instance for unrecognized values. Returns "unknown" if detection fails.
+    """
     try:
         machine = platform.machine().lower()
     except Exception:
@@ -1977,9 +2907,13 @@ def _merge_mappings(
     obj1: Mapping[_T_co, Union[_T, Omit]],
     obj2: Mapping[_T_co, Union[_T, Omit]],
 ) -> Dict[_T_co, _T]:
-    """Merge two mappings of the same type, removing any values that are instances of `Omit`.
-
-    In cases with duplicate keys the second mapping takes precedence.
+    """
+    Merge two mappings, excluding keys whose values are instances of `Omit`.
+    
+    If a key exists in both mappings, the value from the second mapping is used. Keys with values of type `Omit` are omitted from the result.
+    
+    Returns:
+        A dictionary containing merged key-value pairs, excluding any with `Omit` values.
     """
     merged = {**obj1, **obj2}
     return {key: value for key, value in merged.items() if not isinstance(value, Omit)}

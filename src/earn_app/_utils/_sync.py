@@ -23,14 +23,18 @@ else:
     async def _asyncio_to_thread(
         func: Callable[T_ParamSpec, T_Retval], /, *args: T_ParamSpec.args, **kwargs: T_ParamSpec.kwargs
     ) -> Any:
-        """Asynchronously run function *func* in a separate thread.
-
-        Any *args and **kwargs supplied for this function are directly passed
-        to *func*. Also, the current :class:`contextvars.Context` is propagated,
-        allowing context variables from the main thread to be accessed in the
-        separate thread.
-
-        Returns a coroutine that can be awaited to get the eventual result of *func*.
+        """
+        Run a synchronous function asynchronously in a separate thread, propagating context variables.
+        
+        Parameters:
+            func: The synchronous function to execute in a thread.
+            *args: Positional arguments to pass to the function.
+            **kwargs: Keyword arguments to pass to the function.
+        
+        Returns:
+            The result of the function call, awaited as a coroutine.
+        
+        The current context variables are preserved and accessible within the thread.
         """
         loop = asyncio.events.get_running_loop()
         ctx = contextvars.copy_context()
@@ -41,6 +45,17 @@ else:
 async def to_thread(
     func: Callable[T_ParamSpec, T_Retval], /, *args: T_ParamSpec.args, **kwargs: T_ParamSpec.kwargs
 ) -> T_Retval:
+    """
+    Run a blocking function in a separate thread and await its result, compatible with multiple async libraries.
+    
+    Parameters:
+        func: The synchronous callable to execute in a thread.
+        *args: Positional arguments to pass to the callable.
+        **kwargs: Keyword arguments to pass to the callable.
+    
+    Returns:
+        The result returned by the blocking function, awaited asynchronously.
+    """
     if sniffio.current_async_library() == "asyncio":
         return await _asyncio_to_thread(func, *args, **kwargs)
 
@@ -52,35 +67,23 @@ async def to_thread(
 # inspired by `asyncer`, https://github.com/tiangolo/asyncer
 def asyncify(function: Callable[T_ParamSpec, T_Retval]) -> Callable[T_ParamSpec, Awaitable[T_Retval]]:
     """
-    Take a blocking function and create an async one that receives the same
-    positional and keyword arguments. For python version 3.9 and above, it uses
-    asyncio.to_thread to run the function in a separate thread. For python version
-    3.8, it uses locally defined copy of the asyncio.to_thread function which was
-    introduced in python 3.9.
-
-    Usage:
-
-    ```python
-    def blocking_func(arg1, arg2, kwarg1=None):
-        # blocking code
-        return result
-
-
-    result = asyncify(blocking_function)(arg1, arg2, kwarg1=value1)
-    ```
-
-    ## Arguments
-
-    `function`: a blocking regular callable (e.g. a function)
-
-    ## Return
-
-    An async function that takes the same positional and keyword arguments as the
-    original one, that when called runs the same original function in a thread worker
-    and returns the result.
+    Convert a blocking function into an asynchronous function that runs in a thread.
+    
+    The returned async function accepts the same arguments as the original and executes it in a thread, allowing integration of blocking code into async workflows.
+    
+    Parameters:
+        function (Callable): The blocking function to be wrapped.
+    
+    Returns:
+        Callable: An async function that runs the original function in a thread and returns its result.
     """
 
     async def wrapper(*args: T_ParamSpec.args, **kwargs: T_ParamSpec.kwargs) -> T_Retval:
+        """
+        Asynchronous wrapper that runs the original blocking function in a separate thread.
+        
+        Accepts the same arguments as the original function and returns its result as an awaitable.
+        """
         return await to_thread(function, *args, **kwargs)
 
     return wrapper

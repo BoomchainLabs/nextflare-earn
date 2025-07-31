@@ -25,6 +25,17 @@ BaseModelT = TypeVar("BaseModelT", bound=BaseModel)
 
 
 def assert_matches_model(model: type[BaseModelT], value: BaseModelT, *, path: list[str]) -> bool:
+    """
+    Validates that a Pydantic model instance matches the expected model type by recursively asserting each field's value against its declared type.
+    
+    Parameters:
+        model: The expected Pydantic model class.
+        value: The model instance to validate.
+        path: The hierarchical path used for error reporting.
+    
+    Returns:
+        True if all fields in the model instance conform to their declared types.
+    """
     for name, field in get_model_fields(model).items():
         field_value = getattr(value, name)
         if PYDANTIC_V2:
@@ -52,6 +63,17 @@ def assert_matches_type(
     path: list[str],
     allow_none: bool = False,
 ) -> None:
+    """
+    Recursively asserts that a value matches a specified type annotation at runtime.
+    
+    Supports primitive types, collections, unions, literals, datetime types, and Pydantic BaseModel subclasses. Raises an AssertionError if the value does not conform to the provided type, including nested and complex type structures.
+    
+    Parameters:
+        type_ (Any): The type annotation to check against.
+        value (object): The value to validate.
+        path (list[str]): The path to the current value within the data structure, used for error context.
+        allow_none (bool): If True, allows the value to be None regardless of the type annotation.
+    """
     if is_type_alias_type(type_):
         type_ = type_.__value__
 
@@ -135,6 +157,11 @@ def assert_matches_type(
 
 
 def _assert_list_type(type_: type[object], value: object) -> None:
+    """
+    Assert that all elements in a list match the specified inner type.
+    
+    Raises an AssertionError if the value is not a list or if any element does not match the expected type.
+    """
     assert is_list(value)
 
     inner_type = get_args(type_)[0]
@@ -144,6 +171,15 @@ def _assert_list_type(type_: type[object], value: object) -> None:
 
 @contextlib.contextmanager
 def update_env(**new_env: str | Omit) -> Iterator[None]:
+    """
+    Temporarily updates environment variables within a context, restoring the original environment afterward.
+    
+    Parameters:
+        **new_env: Environment variable names and their new values. If a value is an instance of Omit, the variable is removed for the duration of the context.
+    
+    Yields:
+        None: Control is yielded to the context block with the updated environment.
+    """
     old = os.environ.copy()
 
     try:

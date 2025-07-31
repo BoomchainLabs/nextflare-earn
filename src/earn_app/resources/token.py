@@ -23,19 +23,18 @@ class TokenResource(SyncAPIResource):
     @cached_property
     def with_raw_response(self) -> TokenResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables retrieval of raw HTTP response objects for token-related API calls.
+        
+        Use this property to access the full HTTP response, including headers and status code, instead of just the parsed content.
         """
         return TokenResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> TokenResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming response handling for token information requests.
+        
+        Use this property to access the response body as a stream, allowing processing of large or partial responses without loading the entire content into memory.
         """
         return TokenResourceWithStreamingResponse(self)
 
@@ -49,7 +48,18 @@ class TokenResource(SyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> TokenRetrieveInfoResponse:
-        """Retrieve current information about the $LERF token"""
+        """
+        Retrieve the latest information about the $LERF token.
+        
+        Parameters:
+            extra_headers (dict, optional): Additional HTTP headers to include in the request.
+            extra_query (dict, optional): Additional query parameters for the request.
+            extra_body (dict, optional): Additional body content for the request.
+            timeout (float or httpx.Timeout, optional): Timeout setting for the request.
+        
+        Returns:
+            TokenRetrieveInfoResponse: Parsed response containing $LERF token information.
+        """
         return self._get(
             "/token/info",
             options=make_request_options(
@@ -63,19 +73,19 @@ class AsyncTokenResource(AsyncAPIResource):
     @cached_property
     def with_raw_response(self) -> AsyncTokenResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables retrieval of raw HTTP response objects for all API method calls.
+        
+        Use this property to access full response details, such as headers and status codes, instead of only parsed content.
         """
         return AsyncTokenResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> AsyncTokenResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streamed response handling for the token info endpoint without eagerly reading the response body.
+        
+        Returns:
+            AsyncTokenResourceWithStreamingResponse: Wrapper for handling streamed HTTP responses asynchronously.
         """
         return AsyncTokenResourceWithStreamingResponse(self)
 
@@ -89,7 +99,18 @@ class AsyncTokenResource(AsyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> TokenRetrieveInfoResponse:
-        """Retrieve current information about the $LERF token"""
+        """
+        Asynchronously retrieve the latest information about the $LERF token.
+        
+        Parameters:
+            extra_headers: Optional additional HTTP headers to include in the request.
+            extra_query: Optional additional query parameters for the request.
+            extra_body: Optional additional body content for the request.
+            timeout: Optional timeout setting for the request.
+        
+        Returns:
+            TokenRetrieveInfoResponse: Parsed response containing $LERF token information.
+        """
         return await self._get(
             "/token/info",
             options=make_request_options(
@@ -101,6 +122,12 @@ class AsyncTokenResource(AsyncAPIResource):
 
 class TokenResourceWithRawResponse:
     def __init__(self, token: TokenResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for token information retrieval.
+        
+        Parameters:
+            token (TokenResource): The underlying token resource to be wrapped.
+        """
         self._token = token
 
         self.retrieve_info = to_raw_response_wrapper(
@@ -110,6 +137,12 @@ class TokenResourceWithRawResponse:
 
 class AsyncTokenResourceWithRawResponse:
     def __init__(self, token: AsyncTokenResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for asynchronous token info retrieval.
+        
+        Parameters:
+            token (AsyncTokenResource): The asynchronous token resource to wrap.
+        """
         self._token = token
 
         self.retrieve_info = async_to_raw_response_wrapper(
@@ -119,6 +152,11 @@ class AsyncTokenResourceWithRawResponse:
 
 class TokenResourceWithStreamingResponse:
     def __init__(self, token: TokenResource) -> None:
+        """
+        Initialize the streaming response wrapper for the TokenResource.
+        
+        Replaces the `retrieve_info` method to return a streamed HTTP response instead of eagerly reading the response body.
+        """
         self._token = token
 
         self.retrieve_info = to_streamed_response_wrapper(
@@ -128,6 +166,12 @@ class TokenResourceWithStreamingResponse:
 
 class AsyncTokenResourceWithStreamingResponse:
     def __init__(self, token: AsyncTokenResource) -> None:
+        """
+        Initialize the streaming response wrapper for the asynchronous token resource.
+        
+        Parameters:
+            token (AsyncTokenResource): The asynchronous token resource to be wrapped for streaming responses.
+        """
         self._token = token
 
         self.retrieve_info = async_to_streamed_response_wrapper(
