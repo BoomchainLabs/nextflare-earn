@@ -38,6 +38,14 @@ class APIError(EarnAppError):
     """
 
     def __init__(self, message: str, request: httpx.Request, *, body: object | None) -> None:  # noqa: ARG002
+        """
+        Initialize an APIError with a message, the originating HTTP request, and optional response body.
+        
+        Parameters:
+            message (str): Description of the API error.
+            request (httpx.Request): The HTTP request that triggered the error.
+            body (object | None): The API response body, which may be parsed JSON, raw data, or None.
+        """
         super().__init__(message)
         self.request = request
         self.message = message
@@ -49,6 +57,14 @@ class APIResponseValidationError(APIError):
     status_code: int
 
     def __init__(self, response: httpx.Response, body: object | None, *, message: str | None = None) -> None:
+        """
+        Initialize an APIResponseValidationError for schema validation failures in API responses.
+        
+        Parameters:
+            response (httpx.Response): The HTTP response object that failed validation.
+            body (object | None): The response body, either parsed or raw, associated with the error.
+            message (str | None, optional): Custom error message. Defaults to a standard schema validation error message.
+        """
         super().__init__(message or "Data returned by API invalid for expected schema.", response.request, body=body)
         self.response = response
         self.status_code = response.status_code
@@ -61,6 +77,14 @@ class APIStatusError(APIError):
     status_code: int
 
     def __init__(self, message: str, *, response: httpx.Response, body: object | None) -> None:
+        """
+        Initialize an APIStatusError for HTTP responses with error status codes.
+        
+        Parameters:
+            message (str): Description of the error.
+            response (httpx.Response): The HTTP response object associated with the error.
+            body (object | None): The parsed response body or raw data, if available.
+        """
         super().__init__(message, response.request, body=body)
         self.response = response
         self.status_code = response.status_code
@@ -68,11 +92,24 @@ class APIStatusError(APIError):
 
 class APIConnectionError(APIError):
     def __init__(self, *, message: str = "Connection error.", request: httpx.Request) -> None:
+        """
+        Initialize an APIConnectionError for connection-related issues.
+        
+        Parameters:
+            message (str): Optional error message describing the connection error.
+            request (httpx.Request): The HTTP request that triggered the connection error.
+        """
         super().__init__(message, request, body=None)
 
 
 class APITimeoutError(APIConnectionError):
     def __init__(self, request: httpx.Request) -> None:
+        """
+        Initialize a timeout error for an API request.
+        
+        Parameters:
+            request (httpx.Request): The HTTP request that timed out.
+        """
         super().__init__(message="Request timed out.", request=request)
 
 

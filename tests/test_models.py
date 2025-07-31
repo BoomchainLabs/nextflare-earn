@@ -18,11 +18,17 @@ class BasicModel(BaseModel):
 
 @pytest.mark.parametrize("value", ["hello", 1], ids=["correct type", "mismatched"])
 def test_basic(value: object) -> None:
+    """
+    Tests that a BasicModel instance constructed with a given value assigns the value to the 'foo' field without type coercion or validation.
+    """
     m = BasicModel.construct(foo=value)
     assert m.foo == value
 
 
 def test_directly_nested_model() -> None:
+    """
+    Tests construction of a model with a directly nested submodel field, verifying correct assignment with both valid and mismatched types.
+    """
     class NestedModel(BaseModel):
         nested: BasicModel
 
@@ -35,6 +41,11 @@ def test_directly_nested_model() -> None:
 
 
 def test_optional_nested_model() -> None:
+    """
+    Test construction of a model with an optional nested model field using various input types.
+    
+    Verifies that the nested field can be set to None, a dictionary (which is coerced to the nested model), or a mismatched type (which is preserved as-is without validation).
+    """
     class NestedModel(BaseModel):
         nested: Optional[BasicModel]
 
@@ -52,6 +63,9 @@ def test_optional_nested_model() -> None:
 
 
 def test_list_nested_model() -> None:
+    """
+    Test construction of a model with a list of nested models, verifying correct handling of valid and mismatched input types.
+    """
     class NestedModel(BaseModel):
         nested: List[BasicModel]
 
@@ -71,6 +85,9 @@ def test_list_nested_model() -> None:
 
 
 def test_optional_list_nested_model() -> None:
+    """
+    Test construction of a model with an optional list of nested models, verifying correct handling of valid lists, None, and mismatched types.
+    """
     class NestedModel(BaseModel):
         nested: Optional[List[BasicModel]]
 
@@ -93,6 +110,9 @@ def test_optional_list_nested_model() -> None:
 
 
 def test_list_optional_items_nested_model() -> None:
+    """
+    Test construction of a model with a list of optional nested models, including handling of None, dictionaries, and mismatched types.
+    """
     class NestedModel(BaseModel):
         nested: List[Optional[BasicModel]]
 
@@ -113,6 +133,9 @@ def test_list_optional_items_nested_model() -> None:
 
 
 def test_list_mismatched_type() -> None:
+    """
+    Test that constructing a model with a list field using a mismatched non-list type preserves the original value without coercion.
+    """
     class NestedModel(BaseModel):
         nested: List[str]
 
@@ -121,6 +144,9 @@ def test_list_mismatched_type() -> None:
 
 
 def test_raw_dictionary() -> None:
+    """
+    Test construction of a model with a dictionary field, verifying correct assignment and handling of mismatched types.
+    """
     class NestedModel(BaseModel):
         nested: Dict[str, str]
 
@@ -133,6 +159,9 @@ def test_raw_dictionary() -> None:
 
 
 def test_nested_dictionary_model() -> None:
+    """
+    Test construction of a model with a dictionary of nested models, verifying correct instantiation and handling of mismatched types.
+    """
     class NestedModel(BaseModel):
         nested: Dict[str, BasicModel]
 
@@ -146,6 +175,9 @@ def test_nested_dictionary_model() -> None:
 
 
 def test_unknown_fields() -> None:
+    """
+    Test that unknown fields provided during model construction are preserved and accessible, and included in serialization output.
+    """
     m1 = BasicModel.construct(foo="foo", unknown=1)
     assert m1.foo == "foo"
     assert cast(Any, m1).unknown == 1
@@ -158,6 +190,9 @@ def test_unknown_fields() -> None:
 
 
 def test_strict_validation_unknown_fields() -> None:
+    """
+    Test that unknown fields are preserved during strict validation and included in serialization output.
+    """
     class Model(BaseModel):
         foo: str
 
@@ -169,6 +204,9 @@ def test_strict_validation_unknown_fields() -> None:
 
 
 def test_aliases() -> None:
+    """
+    Test that models handle field aliases correctly during construction, including with mismatched types.
+    """
     class Model(BaseModel):
         my_field: int = Field(alias="myField")
 
@@ -181,12 +219,18 @@ def test_aliases() -> None:
 
 
 def test_repr() -> None:
+    """
+    Test that the string and repr representations of BasicModel display the correct field values.
+    """
     model = BasicModel(foo="bar")
     assert str(model) == "BasicModel(foo='bar')"
     assert repr(model) == "BasicModel(foo='bar')"
 
 
 def test_repr_nested_model() -> None:
+    """
+    Test that the string and repr representations of a nested model display the correct structure and values.
+    """
     class Child(BaseModel):
         name: str
         age: int
@@ -201,6 +245,9 @@ def test_repr_nested_model() -> None:
 
 
 def test_optional_list() -> None:
+    """
+    Test construction of a model with an optional list of submodels, verifying handling of None, empty lists, and lists of dictionaries.
+    """
     class Submodel(BaseModel):
         name: str
 
@@ -220,6 +267,9 @@ def test_optional_list() -> None:
 
 
 def test_nested_union_of_models() -> None:
+    """
+    Test that a model with a union field correctly constructs the appropriate submodel based on input data.
+    """
     class Submodel1(BaseModel):
         bar: bool
 
@@ -235,6 +285,11 @@ def test_nested_union_of_models() -> None:
 
 
 def test_nested_union_of_mixed_types() -> None:
+    """
+    Tests construction of a model with a union field accepting a submodel, a boolean literal, or a string literal.
+    
+    Verifies that the correct variant is selected for each input type when constructing the model.
+    """
     class Submodel1(BaseModel):
         bar: bool
 
@@ -253,6 +308,11 @@ def test_nested_union_of_mixed_types() -> None:
 
 
 def test_nested_union_multiple_variants() -> None:
+    """
+    Test construction of a model with a union field containing multiple submodels and None.
+    
+    Verifies that the correct submodel or None is selected based on the input dictionary, and that default construction results in None for the union field.
+    """
     class Submodel1(BaseModel):
         bar: bool
 
@@ -281,6 +341,11 @@ def test_nested_union_multiple_variants() -> None:
 
 
 def test_nested_union_invalid_data() -> None:
+    """
+    Test construction of a model with a union field using invalid data types.
+    
+    Verifies that when constructing a model with a union field and invalid input, the resulting field value or variant selection depends on the Pydantic version. In Pydantic v2, the first union variant is chosen and fields are coerced as needed; in v1, the variant selection and coercion differ.
+    """
     class Submodel1(BaseModel):
         level: int
 
@@ -303,6 +368,11 @@ def test_nested_union_invalid_data() -> None:
 
 
 def test_list_of_unions() -> None:
+    """
+    Test that a model with a list of union types correctly constructs items as the appropriate submodel or preserves mismatched types.
+    
+    Verifies that each item in the list is instantiated as the correct submodel when matching, and that non-matching types are preserved as-is.
+    """
     class Submodel1(BaseModel):
         level: int
 
@@ -327,6 +397,11 @@ def test_list_of_unions() -> None:
 
 
 def test_union_of_lists() -> None:
+    """
+    Test construction of a model with a field that is a union of lists of different submodels.
+    
+    Verifies that the model correctly handles lists containing entries matching different submodel types, as well as entries with completely mismatched types, when using the `construct` method.
+    """
     class SubModel1(BaseModel):
         level: int
 
@@ -359,6 +434,9 @@ def test_union_of_lists() -> None:
 
 
 def test_dict_of_union() -> None:
+    """
+    Tests that a model with a dictionary field containing a union of submodels correctly constructs each entry as the appropriate submodel type based on input data.
+    """
     class SubModel1(BaseModel):
         name: str
 
@@ -379,6 +457,9 @@ def test_dict_of_union() -> None:
 
 
 def test_double_nested_union() -> None:
+    """
+    Tests construction of a model with a dictionary of lists containing a union of submodels, verifying correct instantiation of each variant based on input data.
+    """
     class SubModel1(BaseModel):
         name: str
 
@@ -403,6 +484,9 @@ def test_double_nested_union() -> None:
 
 
 def test_union_of_dict() -> None:
+    """
+    Tests construction of a model with a field that is a union of dictionaries containing different submodels, verifying correct instantiation and type assignment for each dictionary entry.
+    """
     class SubModel1(BaseModel):
         name: str
 
@@ -421,6 +505,9 @@ def test_union_of_dict() -> None:
 
 
 def test_iso8601_datetime() -> None:
+    """
+    Tests that ISO8601 datetime strings are correctly parsed into datetime objects and serialized to JSON with the expected formatting, accounting for differences between Pydantic v1 and v2.
+    """
     class Model(BaseModel):
         created_at: datetime
 
@@ -441,6 +528,9 @@ def test_iso8601_datetime() -> None:
 
 
 def test_does_not_coerce_int() -> None:
+    """
+    Verify that the model's integer field preserves the original type when constructed with non-integer values, without coercion.
+    """
     class Model(BaseModel):
         bar: int
 
@@ -451,6 +541,9 @@ def test_does_not_coerce_int() -> None:
 
 
 def test_int_to_float_safe_conversion() -> None:
+    """
+    Test that integer values are safely converted to float when possible, and large integers remain as int to avoid precision loss.
+    """
     class Model(BaseModel):
         float_field: float
 
@@ -469,6 +562,9 @@ def test_int_to_float_safe_conversion() -> None:
 
 
 def test_deprecated_alias() -> None:
+    """
+    Test that a deprecated alias property correctly forwards to the underlying field and maintains value consistency when constructing or parsing the model.
+    """
     class Model(BaseModel):
         resource_id: str = Field(alias="model_id")
 
@@ -488,6 +584,9 @@ def test_deprecated_alias() -> None:
 
 
 def test_omitted_fields() -> None:
+    """
+    Test that omitted optional fields are not included in the model's field set, while explicitly set fields are tracked.
+    """
     class Model(BaseModel):
         resource_id: Optional[str] = None
 
@@ -505,6 +604,11 @@ def test_omitted_fields() -> None:
 
 
 def test_to_dict() -> None:
+    """
+    Test the `to_dict` method of custom models for correct serialization behavior.
+    
+    Verifies that `to_dict` correctly handles field aliases, unset and None values, exclusion options, and datetime serialization modes. Also checks error handling for unsupported parameters in Pydantic v1.
+    """
     class Model(BaseModel):
         foo: Optional[str] = Field(alias="FOO", default=None)
 
@@ -537,6 +641,11 @@ def test_to_dict() -> None:
 
 
 def test_forwards_compat_model_dump_method() -> None:
+    """
+    Test the `model_dump` method for forward compatibility across Pydantic versions.
+    
+    Verifies correct serialization output with various options such as field inclusion, exclusion, alias usage, and exclusion of unset, none, or default values. Also checks that unsupported parameters raise appropriate errors in Pydantic v1.
+    """
     class Model(BaseModel):
         foo: Optional[str] = Field(alias="FOO", default=None)
 
@@ -565,6 +674,9 @@ def test_forwards_compat_model_dump_method() -> None:
 
 
 def test_compat_method_no_error_for_warnings() -> None:
+    """
+    Verify that calling `model_dump` with `warnings=False` does not raise an error and returns a dictionary.
+    """
     class Model(BaseModel):
         foo: Optional[str]
 
@@ -573,6 +685,11 @@ def test_compat_method_no_error_for_warnings() -> None:
 
 
 def test_to_json() -> None:
+    """
+    Test the `to_json` method of a model for correct JSON serialization with various options.
+    
+    Verifies that field aliases, unset and None exclusion, default exclusion, and indentation are handled as expected. Also checks error handling for unsupported parameters in Pydantic v1.
+    """
     class Model(BaseModel):
         foo: Optional[str] = Field(alias="FOO", default=None)
 
@@ -601,6 +718,11 @@ def test_to_json() -> None:
 
 
 def test_forwards_compat_model_dump_json_method() -> None:
+    """
+    Test the `model_dump_json` method for correct JSON serialization and option handling.
+    
+    Verifies that the method serializes model instances to JSON with various options, including field inclusion, alias usage, indentation, and exclusion of unset, none, or default values. Also checks that unsupported options raise errors in Pydantic v1.
+    """
     class Model(BaseModel):
         foo: Optional[str] = Field(alias="FOO", default=None)
 
@@ -633,6 +755,9 @@ def test_forwards_compat_model_dump_json_method() -> None:
 def test_type_compat() -> None:
     # our model type can be assigned to Pydantic's model type
 
+    """
+    Verify that the custom BaseModel type is compatible with Pydantic's BaseModel type.
+    """
     def takes_pydantic(model: pydantic.BaseModel) -> None:  # noqa: ARG001
         ...
 
@@ -643,6 +768,9 @@ def test_type_compat() -> None:
 
 
 def test_annotated_types() -> None:
+    """
+    Test that models wrapped in Annotated types are correctly constructed and retain their field values.
+    """
     class Model(BaseModel):
         value: str
 
@@ -655,6 +783,11 @@ def test_annotated_types() -> None:
 
 
 def test_discriminated_unions_invalid_data() -> None:
+    """
+    Test discriminated union construction with invalid data types for variant fields.
+    
+    Verifies that when constructing a discriminated union of models with a discriminator field, the correct variant is selected even if the data type of a field does not match the expected type. Checks that the field value is preserved as-is or coerced according to the Pydantic version.
+    """
     class A(BaseModel):
         type: Literal["a"]
 
@@ -688,6 +821,11 @@ def test_discriminated_unions_invalid_data() -> None:
 
 
 def test_discriminated_unions_unknown_variant() -> None:
+    """
+    Test that constructing a discriminated union with an unknown discriminator value selects the first variant and preserves unknown fields.
+    
+    Verifies that when the discriminator field value does not match any known variant, the first variant is chosen, the unknown discriminator value is assigned, and additional fields are retained.
+    """
     class A(BaseModel):
         type: Literal["a"]
 
@@ -711,6 +849,9 @@ def test_discriminated_unions_unknown_variant() -> None:
 
 
 def test_discriminated_unions_invalid_data_nested_unions() -> None:
+    """
+    Tests construction of nested discriminated unions with invalid data, verifying that the correct variant is selected and that field values are preserved even when types do not match the model definition.
+    """
     class A(BaseModel):
         type: Literal["a"]
 
@@ -744,6 +885,9 @@ def test_discriminated_unions_invalid_data_nested_unions() -> None:
 
 
 def test_discriminated_unions_with_aliases_invalid_data() -> None:
+    """
+    Tests discriminated unions with discriminator fields that use aliases, verifying correct variant selection and type coercion when input data does not match the expected type.
+    """
     class A(BaseModel):
         foo_type: Literal["a"] = Field(alias="type")
 
@@ -777,6 +921,11 @@ def test_discriminated_unions_with_aliases_invalid_data() -> None:
 
 
 def test_discriminated_unions_overlapping_discriminators_invalid_data() -> None:
+    """
+    Tests discriminated unions with overlapping discriminator values and invalid data.
+    
+    Verifies that when multiple union variants share the same discriminator value, the first matching variant is selected, and invalid field data is preserved without coercion.
+    """
     class A(BaseModel):
         type: Literal["a"]
 
@@ -797,6 +946,11 @@ def test_discriminated_unions_overlapping_discriminators_invalid_data() -> None:
 
 
 def test_discriminated_unions_invalid_data_uses_cache() -> None:
+    """
+    Test that discriminated union metadata is cached and reused during repeated model construction with invalid data.
+    
+    Verifies that the discriminator details for a union of models are stored on the union type after the first construction, and that subsequent constructions reuse the cached discriminator metadata, even when input data does not match the expected type.
+    """
     class A(BaseModel):
         type: Literal["a"]
 
@@ -835,6 +989,9 @@ def test_discriminated_unions_invalid_data_uses_cache() -> None:
 
 @pytest.mark.skipif(not PYDANTIC_V2, reason="TypeAliasType is not supported in Pydantic v1")
 def test_type_alias_type() -> None:
+    """
+    Tests that models using TypeAliasType fields are constructed correctly, ensuring type aliasing and unions with aliases are handled as expected.
+    """
     Alias = TypeAliasType("Alias", str)  # pyright: ignore
 
     class Model(BaseModel):
@@ -851,6 +1008,9 @@ def test_type_alias_type() -> None:
 
 @pytest.mark.skipif(not PYDANTIC_V2, reason="TypeAliasType is not supported in Pydantic v1")
 def test_field_named_cls() -> None:
+    """
+    Test that a model with a field named 'cls' can be constructed and its value is correctly set as a string.
+    """
     class Model(BaseModel):
         cls: str
 
@@ -860,6 +1020,9 @@ def test_field_named_cls() -> None:
 
 
 def test_discriminated_union_case() -> None:
+    """
+    Tests discriminated union construction where input data matches a nested variant but is missing required fields, ensuring the correct variant is selected and constructed.
+    """
     class A(BaseModel):
         type: Literal["a"]
 

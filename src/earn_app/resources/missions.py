@@ -28,19 +28,18 @@ class MissionsResource(SyncAPIResource):
     @cached_property
     def with_raw_response(self) -> MissionsResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables all HTTP method calls to return raw HTTP response objects instead of parsed data.
+        
+        Use this property to access response metadata such as headers and status codes directly.
         """
         return MissionsResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> MissionsResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming HTTP responses for all methods without buffering the response body.
+        
+        Use this to access response data as a stream rather than as a fully-read object.
         """
         return MissionsResourceWithStreamingResponse(self)
 
@@ -56,16 +55,13 @@ class MissionsResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> Mission:
         """
-        Retrieve detailed information about a specific mission
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Retrieve detailed information about a mission by its unique ID.
+        
+        Parameters:
+            id (int): The unique identifier of the mission to retrieve.
+        
+        Returns:
+            Mission: The mission object containing detailed information.
         """
         return self._get(
             f"/missions/{id}",
@@ -88,20 +84,14 @@ class MissionsResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> MissionListResponse:
         """
-        Retrieve the list of all available missions
-
-        Args:
-          category: Filter missions by category
-
-          status: Filter missions by status
-
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Retrieve a list of missions, optionally filtered by category and status.
+        
+        Parameters:
+            category (str, optional): Filter missions by category.
+            status (Literal["active", "inactive", "completed"], optional): Filter missions by status.
+        
+        Returns:
+            MissionListResponse: A response object containing the list of missions matching the specified filters.
         """
         return self._get(
             "/missions",
@@ -126,19 +116,18 @@ class AsyncMissionsResource(AsyncAPIResource):
     @cached_property
     def with_raw_response(self) -> AsyncMissionsResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables all API methods to return raw HTTP response objects instead of parsed data.
+        
+        Use this property to access response metadata such as headers and status codes for all asynchronous mission API calls.
         """
         return AsyncMissionsResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> AsyncMissionsResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming HTTP responses for all methods without buffering the response body.
+        
+        Use this to access response data as a stream rather than as a fully-read object.
         """
         return AsyncMissionsResourceWithStreamingResponse(self)
 
@@ -154,16 +143,13 @@ class AsyncMissionsResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> Mission:
         """
-        Retrieve detailed information about a specific mission
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously retrieves detailed information about a mission by its unique ID.
+        
+        Parameters:
+            id (int): The unique identifier of the mission to retrieve.
+        
+        Returns:
+            Mission: The mission object containing detailed information.
         """
         return await self._get(
             f"/missions/{id}",
@@ -186,20 +172,14 @@ class AsyncMissionsResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> MissionListResponse:
         """
-        Retrieve the list of all available missions
-
-        Args:
-          category: Filter missions by category
-
-          status: Filter missions by status
-
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously retrieves a list of missions, optionally filtered by category and status.
+        
+        Parameters:
+            category (str, optional): Filter missions by category.
+            status (Literal["active", "inactive", "completed"], optional): Filter missions by status.
+        
+        Returns:
+            MissionListResponse: A response object containing the list of missions matching the provided filters.
         """
         return await self._get(
             "/missions",
@@ -222,6 +202,12 @@ class AsyncMissionsResource(AsyncAPIResource):
 
 class MissionsResourceWithRawResponse:
     def __init__(self, missions: MissionsResource) -> None:
+        """
+        Initialize a wrapper for MissionsResource methods to return raw HTTP responses.
+        
+        Parameters:
+        	missions (MissionsResource): The missions resource instance to wrap.
+        """
         self._missions = missions
 
         self.retrieve = to_raw_response_wrapper(
@@ -234,6 +220,12 @@ class MissionsResourceWithRawResponse:
 
 class AsyncMissionsResourceWithRawResponse:
     def __init__(self, missions: AsyncMissionsResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for asynchronous mission resource methods.
+        
+        Parameters:
+        	missions (AsyncMissionsResource): The asynchronous missions resource to wrap.
+        """
         self._missions = missions
 
         self.retrieve = async_to_raw_response_wrapper(
@@ -246,6 +238,11 @@ class AsyncMissionsResourceWithRawResponse:
 
 class MissionsResourceWithStreamingResponse:
     def __init__(self, missions: MissionsResource) -> None:
+        """
+        Initialize a streaming response wrapper for the MissionsResource.
+        
+        Wraps the `retrieve` and `list` methods to return streaming HTTP responses instead of parsed content.
+        """
         self._missions = missions
 
         self.retrieve = to_streamed_response_wrapper(
@@ -258,6 +255,12 @@ class MissionsResourceWithStreamingResponse:
 
 class AsyncMissionsResourceWithStreamingResponse:
     def __init__(self, missions: AsyncMissionsResource) -> None:
+        """
+        Initialize the streaming response wrapper for asynchronous missions API methods.
+        
+        Parameters:
+        	missions (AsyncMissionsResource): The asynchronous missions resource to wrap.
+        """
         self._missions = missions
 
         self.retrieve = async_to_streamed_response_wrapper(

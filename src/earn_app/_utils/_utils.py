@@ -32,6 +32,15 @@ CallableT = TypeVar("CallableT", bound=Callable[..., Any])
 
 
 def flatten(t: Iterable[Iterable[_T]]) -> list[_T]:
+    """
+    Flatten a nested iterable of iterables into a single list.
+    
+    Parameters:
+        t (Iterable[Iterable[_T]]): An iterable containing other iterables.
+    
+    Returns:
+        list[_T]: A flat list containing all items from the nested iterables, in order.
+    """
     return [item for sublist in t for item in sublist]
 
 
@@ -42,11 +51,17 @@ def extract_files(
     *,
     paths: Sequence[Sequence[str]],
 ) -> list[tuple[str, FileTypes]]:
-    """Recursively extract files from the given dictionary based on specified paths.
-
-    A path may look like this ['foo', 'files', '<array>', 'data'].
-
-    Note: this mutates the given dictionary.
+    """
+    Recursively extracts file-like objects from a nested mapping along specified paths.
+    
+    Each path is a sequence of keys (with "<array>" indicating traversal of all items in a list) describing where to find files within the nested structure. Extracted files are returned as a list of tuples containing a flattened key and the file object. The input mapping is mutated by removing the extracted file entries.
+    
+    Parameters:
+        query (Mapping[str, object]): The nested mapping to extract files from.
+        paths (Sequence[Sequence[str]]): Paths specifying where to look for files.
+    
+    Returns:
+        list[tuple[str, FileTypes]]: A list of (flattened key, file object) tuples for each extracted file.
     """
     files: list[tuple[str, FileTypes]] = []
     for path in paths:
@@ -61,6 +76,10 @@ def _extract_items(
     index: int,
     flattened_key: str | None,
 ) -> list[tuple[str, FileTypes]]:
+    """
+    Recursively traverses an object along a specified path to extract file-like items, returning a list of (flattened key, file content) tuples.
+    
+    This function supports traversal through nested dictionaries and lists, handling special "<array>" path segments for arrays. If the path is exhausted, it validates and collects file content at the current location. Keys are flattened to represent the traversal path. If a path segment is missing or the object type does not match the expected structure, an empty list is returned.
     try:
         key = path[index]
     except IndexError:
@@ -128,6 +147,11 @@ def _extract_items(
 
 
 def is_given(obj: NotGivenOr[_T]) -> TypeGuard[_T]:
+    """
+    Return True if the object is not an instance of NotGiven, narrowing its type.
+    
+    This type guard is used to distinguish values that are not the NotGiven sentinel.
+    """
     return not isinstance(obj, NotGiven)
 
 
@@ -142,48 +166,103 @@ def is_given(obj: NotGivenOr[_T]) -> TypeGuard[_T]:
 
 
 def is_tuple(obj: object) -> TypeGuard[tuple[object, ...]]:
+    """
+    Return True if the object is a tuple, for type narrowing purposes.
+    
+    Returns:
+        TypeGuard[tuple[object, ...]]: True if the object is a tuple, otherwise False.
+    """
     return isinstance(obj, tuple)
 
 
 def is_tuple_t(obj: _TupleT | object) -> TypeGuard[_TupleT]:
+    """
+    Type guard that narrows an object to a specific tuple type.
+    
+    Returns:
+        True if the object is an instance of tuple, allowing type narrowing to _TupleT.
+    """
     return isinstance(obj, tuple)
 
 
 def is_sequence(obj: object) -> TypeGuard[Sequence[object]]:
+    """
+    Determine whether the given object is a sequence (excluding strings and bytes).
+    
+    Returns:
+        True if the object is an instance of collections.abc.Sequence; otherwise, False.
+    """
     return isinstance(obj, Sequence)
 
 
 def is_sequence_t(obj: _SequenceT | object) -> TypeGuard[_SequenceT]:
+    """
+    Type guard that checks if the object is an instance of `Sequence`, narrowing to the specific sequence type `_SequenceT`.
+    
+    Returns:
+        True if `obj` is a `Sequence`, otherwise False.
+    """
     return isinstance(obj, Sequence)
 
 
 def is_mapping(obj: object) -> TypeGuard[Mapping[str, object]]:
+    """
+    Determine if the given object is a mapping with string keys.
+    
+    Returns:
+        TypeGuard[Mapping[str, object]]: True if the object is a mapping (e.g., dict) with string keys, otherwise False.
+    """
     return isinstance(obj, Mapping)
 
 
 def is_mapping_t(obj: _MappingT | object) -> TypeGuard[_MappingT]:
+    """
+    Type guard that checks if the object is an instance of Mapping, narrowing to the specific mapping type.
+    
+    Returns:
+        True if the object is a Mapping, otherwise False.
+    """
     return isinstance(obj, Mapping)
 
 
 def is_dict(obj: object) -> TypeGuard[dict[object, object]]:
+    """
+    Check if the given object is a dictionary.
+    
+    Returns:
+        TypeGuard[dict[object, object]]: True if the object is a dictionary, otherwise False.
+    """
     return isinstance(obj, dict)
 
 
 def is_list(obj: object) -> TypeGuard[list[object]]:
+    """
+    Determine whether the given object is a list.
+    
+    Returns:
+        TypeGuard[list[object]]: True if the object is a list, otherwise False.
+    """
     return isinstance(obj, list)
 
 
 def is_iterable(obj: object) -> TypeGuard[Iterable[object]]:
+    """
+    Return True if the object is an iterable, excluding strings and bytes.
+    
+    Parameters:
+        obj (object): The object to check.
+    
+    Returns:
+        TypeGuard[Iterable[object]]: True if the object is an iterable, otherwise False.
+    """
     return isinstance(obj, Iterable)
 
 
 def deepcopy_minimal(item: _T) -> _T:
-    """Minimal reimplementation of copy.deepcopy() that will only copy certain object types:
-
-    - mappings, e.g. `dict`
-    - list
-
-    This is done for performance reasons.
+    """
+    Recursively creates a shallow copy of mappings and lists, leaving other objects unchanged.
+    
+    Only mappings (such as dict) and lists are copied recursively; all other types are returned as-is for performance optimization.
     """
     if is_mapping(item):
         return cast(_T, {k: deepcopy_minimal(v) for k, v in item.items()})
@@ -194,6 +273,17 @@ def deepcopy_minimal(item: _T) -> _T:
 
 # copied from https://github.com/Rapptz/RoboDanny
 def human_join(seq: Sequence[str], *, delim: str = ", ", final: str = "or") -> str:
+    """
+    Join a sequence of strings into a human-readable list with a final conjunction.
+    
+    Parameters:
+        seq (Sequence[str]): The sequence of strings to join.
+        delim (str, optional): Delimiter to use between elements except the last. Defaults to ", ".
+        final (str, optional): Conjunction to use before the last element. Defaults to "or".
+    
+    Returns:
+        str: A human-readable string combining the sequence elements.
+    """
     size = len(seq)
     if size == 0:
         return ""
@@ -208,33 +298,37 @@ def human_join(seq: Sequence[str], *, delim: str = ", ", final: str = "or") -> s
 
 
 def quote(string: str) -> str:
-    """Add single quotation marks around the given string. Does *not* do any escaping."""
+    """
+    Wraps the input string in single quotes without escaping any characters.
+    
+    Parameters:
+        string (str): The string to be wrapped.
+    
+    Returns:
+        str: The input string surrounded by single quotes.
+    """
     return f"'{string}'"
 
 
 def required_args(*variants: Sequence[str]) -> Callable[[CallableT], CallableT]:
-    """Decorator to enforce a given set of arguments or variants of arguments are passed to the decorated function.
-
-    Useful for enforcing runtime validation of overloaded functions.
-
-    Example usage:
-    ```py
-    @overload
-    def foo(*, a: str) -> str: ...
-
-
-    @overload
-    def foo(*, b: bool) -> str: ...
-
-
-    # This enforces the same constraints that a static type checker would
-    # i.e. that either a or b must be passed to the function
-    @required_args(["a"], ["b"])
-    def foo(*, a: str | None = None, b: bool | None = None) -> str: ...
-    ```
+    """
+    Decorator that enforces that at least one specified set of required arguments is provided to the decorated function.
+    
+    This is useful for runtime validation of overloaded functions, ensuring that the function is called with arguments matching at least one of the provided variants. If none of the variants are satisfied, a `TypeError` is raised with a descriptive message.
+    
+    Parameters:
+        *variants (Sequence[str]): Each variant is a sequence of argument names; at least one variant must be fully satisfied by the function call.
+    
+    Returns:
+        Callable: A decorator that applies the argument validation to the target function.
     """
 
     def inner(func: CallableT) -> CallableT:
+        """
+        Decorator inner function that enforces required argument variants for the decorated function.
+        
+        Checks that at least one specified set of required arguments is present in the call, raising a TypeError with a descriptive message if not. Used internally by the `required_args` decorator.
+        """
         params = inspect.signature(func).parameters
         positional = [
             name
@@ -248,6 +342,12 @@ def required_args(*variants: Sequence[str]) -> Callable[[CallableT], CallableT]:
 
         @functools.wraps(func)
         def wrapper(*args: object, **kwargs: object) -> object:
+            """
+            Validates that at least one required argument variant is present before calling the wrapped function.
+            
+            Raises:
+                TypeError: If none of the specified argument variants are fully provided.
+            """
             given_params: set[str] = set()
             for i, _ in enumerate(args):
                 try:
@@ -292,19 +392,40 @@ _V = TypeVar("_V")
 
 
 @overload
-def strip_not_given(obj: None) -> None: ...
+def strip_not_given(obj: None) -> None: """
+Returns None when the input object is None.
+"""
+...
 
 
 @overload
-def strip_not_given(obj: Mapping[_K, _V | NotGiven]) -> dict[_K, _V]: ...
+def strip_not_given(obj: Mapping[_K, _V | NotGiven]) -> dict[_K, _V]: """
+Return a new dictionary with keys removed where the value is an instance of NotGiven.
+
+Parameters:
+	obj (Mapping[_K, _V | NotGiven]): Input mapping potentially containing NotGiven values.
+
+Returns:
+	dict[_K, _V]: Dictionary with all NotGiven values stripped from the top level.
+"""
+...
 
 
 @overload
-def strip_not_given(obj: object) -> object: ...
+def strip_not_given(obj: object) -> object: """
+Removes top-level keys from a mapping whose values are instances of NotGiven.
+
+If the input is not a mapping or is None, returns the input unchanged.
+"""
+...
 
 
 def strip_not_given(obj: object | None) -> object:
-    """Remove all top-level keys where their values are instances of `NotGiven`"""
+    """
+    Removes top-level dictionary keys whose values are instances of `NotGiven`.
+    
+    If the input is not a mapping or is `None`, returns it unchanged.
+    """
     if obj is None:
         return None
 
@@ -315,39 +436,90 @@ def strip_not_given(obj: object | None) -> object:
 
 
 def coerce_integer(val: str) -> int:
+    """
+    Convert a string to an integer using base 10.
+    
+    Parameters:
+        val (str): The string representation of an integer.
+    
+    Returns:
+        int: The integer value parsed from the string.
+    """
     return int(val, base=10)
 
 
 def coerce_float(val: str) -> float:
+    """
+    Convert a string to a floating-point number.
+    
+    Parameters:
+        val (str): The string representation of a float.
+    
+    Returns:
+        float: The converted floating-point number.
+    """
     return float(val)
 
 
 def coerce_boolean(val: str) -> bool:
+    """
+    Convert a string to a boolean value.
+    
+    Returns True if the input string is "true", "1", or "on"; otherwise, returns False.
+    """
     return val == "true" or val == "1" or val == "on"
 
 
 def maybe_coerce_integer(val: str | None) -> int | None:
+    """
+    Convert a string to an integer, returning None if the input is None.
+    
+    Parameters:
+        val (str | None): The string to convert, or None.
+    
+    Returns:
+        int | None: The converted integer, or None if input was None.
+    """
     if val is None:
         return None
     return coerce_integer(val)
 
 
 def maybe_coerce_float(val: str | None) -> float | None:
+    """
+    Convert a string to a float, returning None if the input is None.
+    
+    Parameters:
+    	val (str | None): The string to convert, or None.
+    
+    Returns:
+    	float | None: The converted float value, or None if input is None.
+    """
     if val is None:
         return None
     return coerce_float(val)
 
 
 def maybe_coerce_boolean(val: str | None) -> bool | None:
+    """
+    Convert a string to a boolean value, returning None if the input is None.
+    
+    Parameters:
+    	val (str | None): The string to convert, or None.
+    
+    Returns:
+    	bool | None: The converted boolean value, or None if input is None.
+    """
     if val is None:
         return None
     return coerce_boolean(val)
 
 
 def removeprefix(string: str, prefix: str) -> str:
-    """Remove a prefix from a string.
-
-    Backport of `str.removeprefix` for Python < 3.9
+    """
+    Return a copy of the string with the specified prefix removed if present.
+    
+    If the string does not start with the prefix, the original string is returned unchanged.
     """
     if string.startswith(prefix):
         return string[len(prefix) :]
@@ -355,9 +527,10 @@ def removeprefix(string: str, prefix: str) -> str:
 
 
 def removesuffix(string: str, suffix: str) -> str:
-    """Remove a suffix from a string.
-
-    Backport of `str.removesuffix` for Python < 3.9
+    """
+    Return a copy of the string with the specified suffix removed, if present.
+    
+    If the string does not end with the given suffix, the original string is returned unchanged.
     """
     if string.endswith(suffix):
         return string[: -len(suffix)]
@@ -365,12 +538,35 @@ def removesuffix(string: str, suffix: str) -> str:
 
 
 def file_from_path(path: str) -> FileTypes:
+    """
+    Reads a file from the specified path and returns a tuple containing the file name and its contents as bytes.
+    
+    Parameters:
+        path (str): The path to the file.
+    
+    Returns:
+        FileTypes: A tuple of (file name, file contents as bytes).
+    """
     contents = Path(path).read_bytes()
     file_name = os.path.basename(path)
     return (file_name, contents)
 
 
 def get_required_header(headers: HeadersLike, header: str) -> str:
+    """
+    Retrieve the value of a specified header from a headers mapping, performing case-insensitive and normalized lookups.
+    
+    Attempts to match the header name in a case-insensitive manner and with various normalizations (original, lowercase, uppercase, intercaps). Raises a ValueError if the header is not found.
+    
+    Parameters:
+        header (str): The name of the header to retrieve.
+    
+    Returns:
+        str: The value of the specified header.
+    
+    Raises:
+        ValueError: If the header is not found in the mapping.
+    """
     lower_header = header.lower()
     if is_mapping_t(headers):
         # mypy doesn't understand the type narrowing here
@@ -390,6 +586,12 @@ def get_required_header(headers: HeadersLike, header: str) -> str:
 
 
 def get_async_library() -> str:
+    """
+    Detects and returns the name of the current async library in use.
+    
+    Returns:
+        The name of the detected async library (e.g., "asyncio", "trio"), or "false" if detection fails.
+    """
     try:
         return sniffio.current_async_library()
     except Exception:
@@ -397,8 +599,14 @@ def get_async_library() -> str:
 
 
 def lru_cache(*, maxsize: int | None = 128) -> Callable[[CallableT], CallableT]:
-    """A version of functools.lru_cache that retains the type signature
-    for the wrapped function arguments.
+    """
+    A typed wrapper around functools.lru_cache that preserves the original function's type signature.
+    
+    Parameters:
+        maxsize (int | None): The maximum size of the cache. Defaults to 128.
+    
+    Returns:
+        Callable: A decorator that applies LRU caching while retaining the wrapped function's type annotations.
     """
     wrapper = functools.lru_cache(  # noqa: TID251
         maxsize=maxsize,
@@ -407,8 +615,14 @@ def lru_cache(*, maxsize: int | None = 128) -> Callable[[CallableT], CallableT]:
 
 
 def json_safe(data: object) -> object:
-    """Translates a mapping / sequence recursively in the same fashion
-    as `pydantic` v2's `model_dump(mode="json")`.
+    """
+    Recursively converts mappings and sequences into JSON-serializable structures, converting dates and datetimes to ISO format strings.
+    
+    Parameters:
+        data (object): The input object to be converted.
+    
+    Returns:
+        object: A JSON-safe version of the input, with mappings and sequences processed recursively and date/datetime objects converted to ISO strings.
     """
     if is_mapping(data):
         return {json_safe(key): json_safe(value) for key, value in data.items()}

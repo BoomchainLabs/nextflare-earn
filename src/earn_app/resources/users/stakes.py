@@ -26,19 +26,18 @@ class StakesResource(SyncAPIResource):
     @cached_property
     def with_raw_response(self) -> StakesResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables access to raw HTTP response objects for all methods in this resource.
+        
+        Use this property to receive the full HTTP response, including headers and status code, instead of only the parsed content.
         """
         return StakesResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> StakesResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that provides streaming HTTP responses for all stake-related methods without eagerly reading the response body.
+        
+        Use this to access streamed responses when working with large payloads or when you need to process the response incrementally.
         """
         return StakesResourceWithStreamingResponse(self)
 
@@ -58,24 +57,17 @@ class StakesResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> UserStake:
         """
-        Stake tokens in a vault
-
-        Args:
-          amount: Amount to stake
-
-          vault_id: Vault identifier
-
-          auto_compound: Whether to auto-compound rewards
-
-          lock_period: Lock period in days
-
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Create a new staking position for a user in a specified vault.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user for whom the stake is being created.
+            amount (float): The amount of tokens to stake.
+            vault_id (int): The identifier of the vault where tokens will be staked.
+            auto_compound (bool, optional): If set, enables automatic compounding of staking rewards.
+            lock_period (int, optional): The duration (in days) to lock the staked tokens.
+        
+        Returns:
+            UserStake: An object representing the newly created staking position.
         """
         return self._post(
             f"/users/{user_id}/stakes",
@@ -106,16 +98,13 @@ class StakesResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> StakeListResponse:
         """
-        Retrieve all staking positions for a specific user
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Retrieve all staking positions for the specified user.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user whose stakes are to be listed.
+        
+        Returns:
+            StakeListResponse: An object containing the user's staking positions.
         """
         return self._get(
             f"/users/{user_id}/stakes",
@@ -130,19 +119,16 @@ class AsyncStakesResource(AsyncAPIResource):
     @cached_property
     def with_raw_response(self) -> AsyncStakesResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables all API methods to return raw HTTP response objects instead of parsed content.
+        
+        Use this property to access response metadata such as headers or status codes for asynchronous stake operations.
         """
         return AsyncStakesResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> AsyncStakesResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming HTTP responses for asynchronous stake operations, allowing response bodies to be processed incrementally without eager reading.
         """
         return AsyncStakesResourceWithStreamingResponse(self)
 
@@ -162,24 +148,17 @@ class AsyncStakesResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> UserStake:
         """
-        Stake tokens in a vault
-
-        Args:
-          amount: Amount to stake
-
-          vault_id: Vault identifier
-
-          auto_compound: Whether to auto-compound rewards
-
-          lock_period: Lock period in days
-
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously creates a new stake for a user in a specified vault.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user for whom the stake is being created.
+            amount (float): The amount of tokens to stake.
+            vault_id (int): The identifier of the vault where tokens will be staked.
+            auto_compound (bool, optional): If set, enables automatic compounding of rewards.
+            lock_period (int, optional): The lock period for the stake in days.
+        
+        Returns:
+            UserStake: The created stake object for the user.
         """
         return await self._post(
             f"/users/{user_id}/stakes",
@@ -210,16 +189,13 @@ class AsyncStakesResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> StakeListResponse:
         """
-        Retrieve all staking positions for a specific user
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously retrieves all staking positions for the specified user.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user whose stakes are to be listed.
+        
+        Returns:
+            StakeListResponse: An object containing the list of all staking positions for the user.
         """
         return await self._get(
             f"/users/{user_id}/stakes",
@@ -232,6 +208,12 @@ class AsyncStakesResource(AsyncAPIResource):
 
 class StakesResourceWithRawResponse:
     def __init__(self, stakes: StakesResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for stake creation and listing operations.
+        
+        Parameters:
+        	stakes (StakesResource): The underlying resource used to perform stake-related API calls.
+        """
         self._stakes = stakes
 
         self.create = to_raw_response_wrapper(
@@ -244,6 +226,12 @@ class StakesResourceWithRawResponse:
 
 class AsyncStakesResourceWithRawResponse:
     def __init__(self, stakes: AsyncStakesResource) -> None:
+        """
+        Initializes the wrapper to provide raw HTTP responses for asynchronous stake operations.
+        
+        Parameters:
+            stakes (AsyncStakesResource): The asynchronous stakes resource to wrap.
+        """
         self._stakes = stakes
 
         self.create = async_to_raw_response_wrapper(
@@ -256,6 +244,11 @@ class AsyncStakesResourceWithRawResponse:
 
 class StakesResourceWithStreamingResponse:
     def __init__(self, stakes: StakesResource) -> None:
+        """
+        Initialize the streaming response wrapper for the StakesResource.
+        
+        This sets up methods to create and list user stakes, returning streamed HTTP responses instead of parsed objects.
+        """
         self._stakes = stakes
 
         self.create = to_streamed_response_wrapper(
@@ -268,6 +261,12 @@ class StakesResourceWithStreamingResponse:
 
 class AsyncStakesResourceWithStreamingResponse:
     def __init__(self, stakes: AsyncStakesResource) -> None:
+        """
+        Initializes the streaming response wrapper for asynchronous user stake operations.
+        
+        Parameters:
+            stakes (AsyncStakesResource): The asynchronous stakes resource to wrap.
+        """
         self._stakes = stakes
 
         self.create = async_to_streamed_response_wrapper(

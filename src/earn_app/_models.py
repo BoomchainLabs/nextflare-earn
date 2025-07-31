@@ -90,6 +90,9 @@ class BaseModel(pydantic.BaseModel):
         @override
         def model_fields_set(self) -> set[str]:
             # a forwards-compat shim for pydantic v2
+            """
+            Return the set of field names that have been explicitly set on this model instance.
+            """
             return self.__fields_set__  # type: ignore
 
         class Config(pydantic.BaseConfig):  # pyright: ignore[reportDeprecated]
@@ -105,24 +108,19 @@ class BaseModel(pydantic.BaseModel):
         exclude_none: bool = False,
         warnings: bool = True,
     ) -> dict[str, object]:
-        """Recursively generate a dictionary representation of the model, optionally specifying which fields to include or exclude.
-
-        By default, fields that were not set by the API will not be included,
-        and keys will match the API response, *not* the property names from the model.
-
-        For example, if the API responds with `"fooBar": true` but we've defined a `foo_bar: bool` property,
-        the output will use the `"fooBar"` key (unless `use_api_names=False` is passed).
-
-        Args:
-            mode:
-                If mode is 'json', the dictionary will only contain JSON serializable types. e.g. `datetime` will be turned into a string, `"2024-3-22T18:11:19.117000Z"`.
-                If mode is 'python', the dictionary may contain any Python objects. e.g. `datetime(2024, 3, 22)`
-
-            use_api_names: Whether to use the key that the API responded with or the property name. Defaults to `True`.
-            exclude_unset: Whether to exclude fields that have not been explicitly set.
-            exclude_defaults: Whether to exclude fields that are set to their default value from the output.
-            exclude_none: Whether to exclude fields that have a value of `None` from the output.
-            warnings: Whether to log warnings when invalid fields are encountered. This is only supported in Pydantic v2.
+        """
+        Return a dictionary representation of the model, with options for field inclusion, naming, and serialization mode.
+        
+        Parameters:
+            mode (Literal["json", "python"]): Output mode; "json" ensures all values are JSON serializable, while "python" preserves native Python types.
+            use_api_names (bool): If True, uses API field names (aliases) as keys; if False, uses model property names.
+            exclude_unset (bool): If True, omits fields that were not explicitly set.
+            exclude_defaults (bool): If True, omits fields set to their default value.
+            exclude_none (bool): If True, omits fields with a value of None.
+            warnings (bool): If True, enables warnings for invalid fields (Pydantic v2 only).
+        
+        Returns:
+            dict[str, object]: Dictionary representation of the model according to the specified options.
         """
         return self.model_dump(
             mode=mode,
@@ -143,21 +141,21 @@ class BaseModel(pydantic.BaseModel):
         exclude_none: bool = False,
         warnings: bool = True,
     ) -> str:
-        """Generates a JSON string representing this model as it would be received from or sent to the API (but with indentation).
-
-        By default, fields that were not set by the API will not be included,
-        and keys will match the API response, *not* the property names from the model.
-
-        For example, if the API responds with `"fooBar": true` but we've defined a `foo_bar: bool` property,
-        the output will use the `"fooBar"` key (unless `use_api_names=False` is passed).
-
-        Args:
-            indent: Indentation to use in the JSON output. If `None` is passed, the output will be compact. Defaults to `2`
-            use_api_names: Whether to use the key that the API responded with or the property name. Defaults to `True`.
-            exclude_unset: Whether to exclude fields that have not been explicitly set.
-            exclude_defaults: Whether to exclude fields that have the default value.
-            exclude_none: Whether to exclude fields that have a value of `None`.
-            warnings: Whether to show any warnings that occurred during serialization. This is only supported in Pydantic v2.
+        """
+        Return a JSON string representation of the model, formatted for API communication.
+        
+        By default, only explicitly set fields are included, and field names use API aliases. Options allow customization of indentation, field inclusion, and warning display (Pydantic v2 only).
+        
+        Parameters:
+            indent (int | None): Number of spaces for indentation in the output, or `None` for compact JSON.
+            use_api_names (bool): If True, use API field names (aliases) instead of model property names.
+            exclude_unset (bool): If True, omit fields that were not explicitly set.
+            exclude_defaults (bool): If True, omit fields with default values.
+            exclude_none (bool): If True, omit fields with a value of `None`.
+            warnings (bool): If True, display serialization warnings (Pydantic v2 only).
+        
+        Returns:
+            str: The JSON string representation of the model.
         """
         return self.model_dump_json(
             indent=indent,
@@ -171,6 +169,9 @@ class BaseModel(pydantic.BaseModel):
     @override
     def __str__(self) -> str:
         # mypy complains about an invalid self arg
+        """
+        Return a concise string representation of the model instance, including its class name and field values.
+        """
         return f"{self.__repr_name__()}({self.__repr_str__(', ')})"  # type: ignore[misc]
 
     # Override the 'construct' method in a way that supports recursive parsing without validation.
@@ -182,6 +183,15 @@ class BaseModel(pydantic.BaseModel):
         _fields_set: set[str] | None = None,
         **values: object,
     ) -> ModelT:
+        """
+        Create a model instance without validation, recursively constructing nested fields and handling extra attributes.
+        
+        Parameters:
+            _fields_set (set[str] | None): Optional set of field names considered set on the model. If not provided, an empty set is used.
+        
+        Returns:
+            ModelT: An instance of the model with fields populated from the provided values, constructed without validation.
+        """
         m = __cls.__new__(__cls)
         fields_values: dict[str, object] = {}
 
@@ -260,25 +270,20 @@ class BaseModel(pydantic.BaseModel):
             context: dict[str, Any] | None = None,
             serialize_as_any: bool = False,
         ) -> dict[str, Any]:
-            """Usage docs: https://docs.pydantic.dev/2.4/concepts/serialization/#modelmodel_dump
-
-            Generate a dictionary representation of the model, optionally specifying which fields to include or exclude.
-
-            Args:
-                mode: The mode in which `to_python` should run.
-                    If mode is 'json', the dictionary will only contain JSON serializable types.
-                    If mode is 'python', the dictionary may contain any Python objects.
-                include: A list of fields to include in the output.
-                exclude: A list of fields to exclude from the output.
-                by_alias: Whether to use the field's alias in the dictionary key if defined.
-                exclude_unset: Whether to exclude fields that are unset or None from the output.
-                exclude_defaults: Whether to exclude fields that are set to their default value from the output.
-                exclude_none: Whether to exclude fields that have a value of `None` from the output.
-                round_trip: Whether to enable serialization and deserialization round-trip support.
-                warnings: Whether to log warnings when invalid fields are encountered.
-
+            """
+            Generate a dictionary representation of the model, with options for JSON or Python-native types and field inclusion or exclusion.
+            
+            Parameters:
+                mode (str): Output mode; "json" for JSON-serializable types, "python" for native Python types.
+                include: Fields to include in the output.
+                exclude: Fields to exclude from the output.
+                by_alias (bool): Use field aliases as keys if defined.
+                exclude_unset (bool): Exclude fields that are unset or None.
+                exclude_defaults (bool): Exclude fields set to their default value.
+                exclude_none (bool): Exclude fields with a value of None.
+            
             Returns:
-                A dictionary representation of the model.
+                dict[str, Any]: Dictionary representation of the model.
             """
             if mode not in {"json", "python"}:
                 raise ValueError("mode must be either 'json' or 'python'")
@@ -317,23 +322,20 @@ class BaseModel(pydantic.BaseModel):
             context: dict[str, Any] | None = None,
             serialize_as_any: bool = False,
         ) -> str:
-            """Usage docs: https://docs.pydantic.dev/2.4/concepts/serialization/#modelmodel_dump_json
-
-            Generates a JSON representation of the model using Pydantic's `to_json` method.
-
-            Args:
-                indent: Indentation to use in the JSON output. If None is passed, the output will be compact.
-                include: Field(s) to include in the JSON output. Can take either a string or set of strings.
-                exclude: Field(s) to exclude from the JSON output. Can take either a string or set of strings.
-                by_alias: Whether to serialize using field aliases.
-                exclude_unset: Whether to exclude fields that have not been explicitly set.
-                exclude_defaults: Whether to exclude fields that have the default value.
-                exclude_none: Whether to exclude fields that have a value of `None`.
-                round_trip: Whether to use serialization/deserialization between JSON and class instance.
-                warnings: Whether to show any warnings that occurred during serialization.
-
+            """
+            Return a JSON string representation of the model, with options to control field inclusion, exclusion, alias usage, and formatting.
+            
+            Parameters:
+                indent (int | None): Number of spaces for indentation in the output, or None for compact output.
+                include (IncEx | None): Fields to include in the output.
+                exclude (IncEx | None): Fields to exclude from the output.
+                by_alias (bool): Whether to use field aliases in the output.
+                exclude_unset (bool): Exclude fields that were not explicitly set.
+                exclude_defaults (bool): Exclude fields with default values.
+                exclude_none (bool): Exclude fields with a value of None.
+            
             Returns:
-                A JSON string representation of the model.
+                str: The JSON string representation of the model.
             """
             if round_trip != False:
                 raise ValueError("round_trip is only supported in Pydantic v2")
@@ -355,6 +357,11 @@ class BaseModel(pydantic.BaseModel):
 
 
 def _construct_field(value: object, field: FieldInfo, key: str) -> object:
+    """
+    Coerces a value to the expected type for a Pydantic model field, using the field's type annotation.
+    
+    If the value is `None`, returns the field's default value. Raises a `RuntimeError` if the field's type annotation is missing.
+    """
     if value is None:
         return field_get_default(field)
 
@@ -370,7 +377,12 @@ def _construct_field(value: object, field: FieldInfo, key: str) -> object:
 
 
 def is_basemodel(type_: type) -> bool:
-    """Returns whether or not the given type is either a `BaseModel` or a union of `BaseModel`"""
+    """
+    Determine if the given type is a subclass of BaseModel or a union containing any BaseModel subclass.
+    
+    Returns:
+        bool: True if the type is a BaseModel subclass or a union with at least one BaseModel variant; otherwise, False.
+    """
     if is_union(type_):
         for variant in get_args(type_):
             if is_basemodel(variant):
@@ -382,6 +394,12 @@ def is_basemodel(type_: type) -> bool:
 
 
 def is_basemodel_type(type_: type) -> TypeGuard[type[BaseModel] | type[GenericModel]]:
+    """
+    Determine if the given type is a subclass of BaseModel or GenericModel.
+    
+    Returns:
+        TypeGuard[type[BaseModel] | type[GenericModel]]: True if the type is a subclass of BaseModel or GenericModel, otherwise False.
+    """
     origin = get_origin(type_) or type_
     if not inspect.isclass(origin):
         return False
@@ -393,15 +411,14 @@ def build(
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> _BaseModelT:
-    """Construct a BaseModel class without validation.
-
-    This is useful for cases where you need to instantiate a `BaseModel`
-    from an API response as this provides type-safe params which isn't supported
-    by helpers like `construct_type()`.
-
-    ```py
-    build(MyModel, my_field_a="foo", my_field_b=123)
-    ```
+    """
+    Instantiate a BaseModel subclass without validation using keyword arguments only.
+    
+    Raises:
+        TypeError: If any positional arguments are provided.
+    
+    Returns:
+        An instance of the specified BaseModel subclass with fields populated from the provided keyword arguments.
     """
     if args:
         raise TypeError(
@@ -412,18 +429,31 @@ def build(
 
 
 def construct_type_unchecked(*, value: object, type_: type[_T]) -> _T:
-    """Loose coercion to the expected type with construction of nested values.
-
-    Note: the returned value from this function is not guaranteed to match the
-    given type.
+    """
+    Coerces a value to the specified type, constructing nested values as needed, without strict type guarantees.
+    
+    Parameters:
+        value (object): The input value to coerce.
+        type_ (type[_T]): The target type for coercion.
+    
+    Returns:
+        _T: The coerced value, which may not strictly match the target type.
     """
     return cast(_T, construct_type(value=value, type_=type_))
 
 
 def construct_type(*, value: object, type_: object) -> object:
-    """Loose coercion to the expected type with construction of nested values.
-
-    If the given value does not match the expected type then it is returned as-is.
+    """
+    Recursively coerces a value to the specified type, constructing nested models and handling unions, generics, and common built-in types.
+    
+    Attempts to convert the input value to the target type, supporting:
+    - Unwrapping of type aliases and annotated types.
+    - Discriminated and regular unions, resolving the correct variant when possible.
+    - Recursive construction of dictionaries, lists, and Pydantic models.
+    - Coercion of integers to floats when appropriate.
+    - Parsing of datetime and date values.
+    
+    If coercion is not possible, returns the original value unchanged.
     """
 
     # store a reference to the original type we were given before we extract any inner
@@ -579,12 +609,25 @@ class DiscriminatorDetails:
         discriminator_field: str,
         discriminator_alias: str | None,
     ) -> None:
+        """
+        Initialize DiscriminatorDetails with a mapping of discriminator values to types and discriminator field information.
+        
+        Parameters:
+            mapping (dict[str, type]): Maps discriminator values to their corresponding variant types.
+            discriminator_field (str): The name of the discriminator field used to distinguish variants.
+            discriminator_alias (str | None): An optional alias for the discriminator field.
+        """
         self.mapping = mapping
         self.field_name = discriminator_field
         self.field_alias_from = discriminator_alias
 
 
 def _build_discriminated_union_meta(*, union: type, meta_annotations: tuple[Any, ...]) -> DiscriminatorDetails | None:
+    """
+    Builds and caches discriminator metadata for a discriminated union type.
+    
+    Inspects the provided union type and its annotations to extract the discriminator field name, its alias (if any), and a mapping from discriminator values to their corresponding variant types. Returns a `DiscriminatorDetails` object if a discriminator is found; otherwise, returns `None`.
+    """
     if isinstance(union, CachedDiscriminatorType):
         return union.__discriminator__
 
@@ -644,6 +687,16 @@ def _build_discriminated_union_meta(*, union: type, meta_annotations: tuple[Any,
 
 
 def _extract_field_schema_pv2(model: type[BaseModel], field_name: str) -> ModelField | None:
+    """
+    Extracts the core schema for a specific field from a Pydantic v2 model.
+    
+    Parameters:
+        model (type[BaseModel]): The Pydantic v2 model class.
+        field_name (str): The name of the field to extract.
+    
+    Returns:
+        ModelField | None: The schema for the specified field, or None if not found.
+    """
     schema = model.__pydantic_core_schema__
     if schema["type"] == "definitions":
         schema = schema["schema"]
@@ -665,7 +718,18 @@ def _extract_field_schema_pv2(model: type[BaseModel], field_name: str) -> ModelF
 
 
 def validate_type(*, type_: type[_T], value: object) -> _T:
-    """Strict validation that the given value matches the expected type"""
+    """
+    Strictly validates that a value matches the specified type.
+    
+    If the type is a subclass of Pydantic's BaseModel, uses Pydantic's parsing logic; otherwise, performs strict validation for non-model types.
+    
+    Parameters:
+        type_ (type[_T]): The expected type to validate against.
+        value (object): The value to validate.
+    
+    Returns:
+        _T: The validated value, guaranteed to match the specified type.
+    """
     if inspect.isclass(type_) and issubclass(type_, pydantic.BaseModel):
         return cast(_T, parse_obj(type_, value))
 
@@ -673,9 +737,10 @@ def validate_type(*, type_: type[_T], value: object) -> _T:
 
 
 def set_pydantic_config(typ: Any, config: pydantic.ConfigDict) -> None:
-    """Add a pydantic config for the given type.
-
-    Note: this is a no-op on Pydantic v1.
+    """
+    Attach a Pydantic configuration dictionary to a type for use with Pydantic v2.
+    
+    This function sets the `__pydantic_config__` attribute on the given type. It has no effect when using Pydantic v1.
     """
     setattr(typ, "__pydantic_config__", config)  # noqa: B010
 
@@ -701,6 +766,12 @@ if PYDANTIC_V2:
         TypeAdapter = _CachedTypeAdapter
 
     def _validate_non_model_type(*, type_: type[_T], value: object) -> _T:
+        """
+        Validate a non-BaseModel type using Pydantic's TypeAdapter.
+        
+        Returns:
+            The validated value coerced to the specified type.
+        """
         return TypeAdapter(type_).validate_python(value)
 
 elif not TYPE_CHECKING:  # TODO: condition is weird
@@ -719,10 +790,26 @@ elif not TYPE_CHECKING:  # TODO: condition is weird
         __root__: _T
 
     def _validate_non_model_type(*, type_: type[_T], value: object) -> _T:
+        """
+        Validate a value against a non-BaseModel type using a dynamically created Pydantic model.
+        
+        Parameters:
+            type_ (type[_T]): The target type to validate against.
+            value (object): The value to validate.
+        
+        Returns:
+            _T: The validated value, coerced to the specified type.
+        """
         model = _create_pydantic_model(type_).validate(value)
         return cast(_T, model.__root__)
 
     def _create_pydantic_model(type_: _T) -> Type[RootModel[_T]]:
+        """
+        Create a Pydantic RootModel parametrized by the given type.
+        
+        Returns:
+            A RootModel subclass with its `__root__` field set to the specified type.
+        """
         return RootModel[type_]  # type: ignore
 
 
@@ -766,11 +853,23 @@ class FinalRequestOptions(pydantic.BaseModel):
             arbitrary_types_allowed: bool = True
 
     def get_max_retries(self, max_retries: int) -> int:
+        """
+        Return the maximum number of retries, using the instance value if set, otherwise the provided default.
+        
+        Parameters:
+            max_retries (int): The default number of retries to use if the instance value is not set.
+        
+        Returns:
+            int: The resolved maximum number of retries.
+        """
         if isinstance(self.max_retries, NotGiven):
             return max_retries
         return self.max_retries
 
     def _strip_raw_response_header(self) -> None:
+        """
+        Removes the raw response header from the headers dictionary if it is present.
+        """
         if not is_given(self.headers):
             return
 
@@ -790,6 +889,16 @@ class FinalRequestOptions(pydantic.BaseModel):
         _fields_set: set[str] | None = None,
         **values: Unpack[FinalRequestOptionsInput],
     ) -> FinalRequestOptions:
+        """
+        Create a `FinalRequestOptions` instance without validation, stripping any `NotGiven` sentinel values from mapping fields.
+        
+        Parameters:
+            _fields_set (set[str] | None): Optional set of field names to mark as explicitly set.
+            **values: Field values for the model, with any mapping values cleaned of `NotGiven` sentinels.
+        
+        Returns:
+            FinalRequestOptions: An instance of the model with cleaned field values.
+        """
         kwargs: dict[str, Any] = {
             # we unconditionally call `strip_not_given` on any value
             # as it will just ignore any non-mapping types

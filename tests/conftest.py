@@ -24,6 +24,11 @@ logging.getLogger("earn_app").setLevel(logging.DEBUG)
 # automatically add `pytest.mark.asyncio()` to all of our async tests
 # so we don't have to add that boilerplate everywhere
 def pytest_collection_modifyitems(items: list[pytest.Function]) -> None:
+    """
+    Modifies collected pytest test items to ensure proper async test handling and skip incompatible test configurations.
+    
+    Automatically adds the `pytest.mark.asyncio(loop_scope="session")` marker to all asynchronous tests. Skips tests that use both the `aiohttp` async client and `respx_mock` fixture due to incompatibility between `respx_mock` and custom transports required by `aiohttp`.
+    """
     pytest_asyncio_tests = (item for item in items if is_async_test(item))
     session_scope_marker = pytest.mark.asyncio(loop_scope="session")
     for async_test in pytest_asyncio_tests:
@@ -50,6 +55,14 @@ api_key = "My API Key"
 
 @pytest.fixture(scope="session")
 def client(request: FixtureRequest) -> Iterator[EarnApp]:
+    """
+    Provides a session-scoped pytest fixture that yields an `EarnApp` client instance configured for testing.
+    
+    The fixture accepts an optional boolean parameter via `request.param` to enable or disable strict response validation (defaults to `True`). Raises a `TypeError` if the parameter is not a boolean.
+    
+    Yields:
+        EarnApp: An instance of the synchronous API client for use in tests.
+    """
     strict = getattr(request, "param", True)
     if not isinstance(strict, bool):
         raise TypeError(f"Unexpected fixture parameter type {type(strict)}, expected {bool}")
@@ -60,6 +73,17 @@ def client(request: FixtureRequest) -> Iterator[EarnApp]:
 
 @pytest.fixture(scope="session")
 async def async_client(request: FixtureRequest) -> AsyncIterator[AsyncEarnApp]:
+    """
+    Asynchronous pytest fixture that yields an `AsyncEarnApp` client instance for testing.
+    
+    The fixture can be parameterized with a boolean to enable or disable strict response validation, or with a dictionary to configure both strict validation and the HTTP client type (`"httpx"` or `"aiohttp"`). The client is properly managed as an asynchronous context manager to ensure resource cleanup.
+    
+    Yields:
+        AsyncEarnApp: An asynchronous API client instance configured for testing.
+    
+    Raises:
+        TypeError: If the fixture parameter is not a boolean or dictionary.
+    """
     param = getattr(request, "param", True)
 
     # defaults

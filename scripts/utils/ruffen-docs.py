@@ -33,16 +33,35 @@ class CodeBlockError(NamedTuple):
 def format_str(
     src: str,
 ) -> tuple[str, Sequence[CodeBlockError]]:
+    """
+    Format all Python and Python REPL code blocks within a Markdown string using the ruff formatter.
+    
+    Parameters:
+        src (str): The Markdown source text to process.
+    
+    Returns:
+        tuple[str, Sequence[CodeBlockError]]: A tuple containing the formatted Markdown string and a sequence of errors encountered during code block formatting.
+    """
     errors: list[CodeBlockError] = []
 
     @contextlib.contextmanager
     def _collect_error(match: Match[str]) -> Generator[None, None, None]:
+        """
+        Context manager that captures exceptions raised during code block processing and records them as CodeBlockError instances with the error offset.
+        
+        Intended for use within formatting routines to associate errors with their position in the source.
+        """
         try:
             yield
         except Exception as e:
             errors.append(CodeBlockError(match.start(), e))
 
     def _md_match(match: Match[str]) -> str:
+        """
+        Format a matched Python code block from Markdown using the ruff formatter.
+        
+        Replaces the original code block with its formatted version, preserving indentation and surrounding Markdown structure.
+        """
         code = textwrap.dedent(match["code"])
         with _collect_error(match):
             code = format_code_block(code)
@@ -50,10 +69,23 @@ def format_str(
         return f"{match['before']}{code}{match['after']}"
 
     def _pycon_match(match: Match[str]) -> str:
+        """
+        Formats a Python REPL (pycon) code block by extracting, formatting, and reconstructing input fragments.
+        
+        Processes lines from a Markdown pycon code block, identifies REPL input fragments, formats each fragment using the code formatter, and reassembles the block with correct REPL prompts and indentation. Preserves blank lines and prompt structure to maintain REPL semantics.
+        
+        Returns:
+            str: The formatted pycon code block as a string.
+        """
         code = ""
         fragment = cast(Optional[str], None)
 
         def finish_fragment() -> None:
+            """
+            Finalize and format the current REPL input fragment, appending it to the reconstructed Python REPL code block.
+            
+            This function formats the accumulated REPL fragment using the code formatter, splits it into lines, and appends each line to the output code block with appropriate REPL prompts. Handles blank lines and continuation prompts to preserve REPL session structure.
+            """
             nonlocal code
             nonlocal fragment
 
@@ -95,6 +127,12 @@ def format_str(
         return code
 
     def _md_pycon_match(match: Match[str]) -> str:
+        """
+        Processes a matched Python REPL code block from Markdown, formats its content, and re-indents it to match the original indentation.
+        
+        Returns:
+            str: The reconstructed Markdown code block with formatted and properly indented REPL content.
+        """
         code = _pycon_match(match)
         code = textwrap.indent(code, match["indent"])
         return f"{match['before']}{code}{match['after']}"
@@ -105,6 +143,18 @@ def format_str(
 
 
 def format_code_block(code: str) -> str:
+    """
+    Format a Python code block using the ruff formatter.
+    
+    Parameters:
+        code (str): The Python code to format.
+    
+    Returns:
+        str: The formatted Python code as returned by ruff.
+    
+    Raises:
+        CalledProcessError: If the ruff formatter fails or returns a non-zero exit code.
+    """
     return subprocess.check_output(
         [
             sys.executable,
@@ -123,6 +173,16 @@ def format_file(
     filename: str,
     skip_errors: bool,
 ) -> int:
+    """
+    Format all Python code blocks in a Markdown file and rewrite the file if changes are made.
+    
+    Parameters:
+        filename (str): Path to the Markdown file to process.
+        skip_errors (bool): If True, continue processing even if formatting errors occur.
+    
+    Returns:
+        int: 0 if successful or no changes were made, 1 if errors occurred and were not skipped.
+    """
     with open(filename, encoding="UTF-8") as f:
         contents = f.read()
     new_contents, errors = format_str(contents)
@@ -141,6 +201,11 @@ def format_file(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """
+    Parse command-line arguments and format Python code blocks in specified Markdown files.
+    
+    Processes each provided filename, formatting embedded Python and Python REPL code blocks using the ruff formatter. Aggregates and returns an exit code indicating overall success or failure.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-l",

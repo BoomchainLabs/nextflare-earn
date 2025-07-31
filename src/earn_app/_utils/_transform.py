@@ -63,6 +63,15 @@ class PropertyInfo:
         format_template: str | None = None,
         discriminator: str | None = None,
     ) -> None:
+        """
+        Initialize PropertyInfo with optional metadata for property aliasing, formatting, and discrimination.
+        
+        Parameters:
+            alias (str | None): Alternative key name to use during serialization.
+            format (PropertyFormat | None): Format to apply to the property value (e.g., 'iso8601', 'base64', or 'custom').
+            format_template (str | None): Custom format string for date/time formatting when format is 'custom'.
+            discriminator (str | None): Optional discriminator string for distinguishing between types.
+        """
         self.alias = alias
         self.format = format
         self.format_template = format_template
@@ -70,6 +79,9 @@ class PropertyInfo:
 
     @override
     def __repr__(self) -> str:
+        """
+        Return a string representation of the PropertyInfo instance, including its alias, format, format template, and discriminator.
+        """
         return f"{self.__class__.__name__}(alias='{self.alias}', format={self.format}, format_template='{self.format_template}', discriminator='{self.discriminator}')"
 
 
@@ -77,9 +89,11 @@ def maybe_transform(
     data: object,
     expected_type: object,
 ) -> Any | None:
-    """Wrapper over `transform()` that allows `None` to be passed.
-
-    See `transform()` for more details.
+    """
+    Transforms the input data according to the expected type annotation, returning None if the input is None.
+    
+    Returns:
+        The transformed data structure, or None if the input data is None.
     """
     if data is None:
         return None
@@ -91,20 +105,13 @@ def transform(
     data: _T,
     expected_type: object,
 ) -> _T:
-    """Transform dictionaries based off of type information from the given type, for example:
-
-    ```py
-    class Params(TypedDict, total=False):
-        card_id: Required[Annotated[str, PropertyInfo(alias="cardID")]]
-
-
-    transformed = transform({"card_id": "<my card ID>"}, Params)
-    # {'cardID': '<my card ID>'}
-    ```
-
-    Any keys / data that does not have type information given will be included as is.
-
-    It should be noted that the transformations that this function does are not represented in the type system.
+    """
+    Transforms a data structure according to the provided type annotation, applying key aliasing and value formatting based on `Annotated` metadata.
+    
+    Keys and values without type information are left unchanged. Transformations such as renaming keys or formatting values (e.g., date serialization, base64 encoding) are applied only when specified by `PropertyInfo` in the type annotation.
+    
+    Returns:
+        The transformed data structure matching the expected type annotation, with applicable serialization rules applied.
     """
     transformed = _transform_recursive(data, annotation=cast(type, expected_type))
     return cast(_T, transformed)
@@ -112,9 +119,8 @@ def transform(
 
 @lru_cache(maxsize=8096)
 def _get_annotated_type(type_: type) -> type | None:
-    """If the given type is an `Annotated` type then it is returned, if not `None` is returned.
-
-    This also unwraps the type when applicable, e.g. `Required[Annotated[T, ...]]`
+    """
+    Returns the `Annotated` type if present, unwrapping `Required[Annotated[T, ...]]` if necessary; otherwise, returns `None`.
     """
     if is_required_type(type_):
         # Unwrap `Required[Annotated[T, ...]]` to `Annotated[T, ...]`
@@ -127,9 +133,10 @@ def _get_annotated_type(type_: type) -> type | None:
 
 
 def _maybe_transform_key(key: str, type_: type) -> str:
-    """Transform the given `data` based on the annotations provided in `type_`.
-
-    Note: this function only looks at `Annotated` types that contain `PropertyInfo` metadata.
+    """
+    Returns the alias for a key if specified in the type's `PropertyInfo` annotation; otherwise, returns the original key.
+    
+    If the provided type is an `Annotated` type containing `PropertyInfo` with an `alias`, the alias is used for the key transformation.
     """
     annotated_type = _get_annotated_type(type_)
     if annotated_type is None:
@@ -146,6 +153,9 @@ def _maybe_transform_key(key: str, type_: type) -> str:
 
 
 def _no_transform_needed(annotation: type) -> bool:
+    """
+    Return True if the annotation is a primitive numeric type that does not require transformation.
+    """
     return annotation == float or annotation == int
 
 
@@ -155,17 +165,18 @@ def _transform_recursive(
     annotation: type,
     inner_type: type | None = None,
 ) -> object:
-    """Transform the given data against the expected type.
-
-    Args:
-        annotation: The direct type annotation given to the particular piece of data.
-            This may or may not be wrapped in metadata types, e.g. `Required[T]`, `Annotated[T, ...]` etc
-
-        inner_type: If applicable, this is the "inside" type. This is useful in certain cases where the outside type
-            is a container type such as `List[T]`. In that case `inner_type` should be set to `T` so that each entry in
-            the list can be transformed using the metadata from the container type.
-
-            Defaults to the same value as the `annotation` argument.
+    """
+    Recursively transforms data according to the provided type annotation, applying property aliasing and formatting as specified by metadata.
+    
+    This function handles complex types such as TypedDicts, dictionaries, lists, iterables, unions, and Pydantic models. It applies key renaming and value formatting based on `PropertyInfo` metadata found in `Annotated` types. For container types, it recursively transforms each element or value. For union types, it applies transformations for each subtype. If formatting is specified (e.g., ISO8601 for dates, base64 for files), it is applied to the relevant data.
+    
+    Parameters:
+        data (object): The input data to be transformed.
+        annotation (type): The type annotation describing the expected structure and metadata.
+        inner_type (type | None): The element type for container types; defaults to `annotation` if not provided.
+    
+    Returns:
+        object: The transformed data structure, with keys and values modified according to the type annotation and metadata.
     """
     if inner_type is None:
         inner_type = annotation
@@ -228,6 +239,22 @@ def _transform_recursive(
 
 
 def _format_data(data: object, format_: PropertyFormat, format_template: str | None) -> object:
+    """
+    Format data according to the specified property format and template.
+    
+    Supports formatting date and datetime objects to ISO 8601 strings or custom formats, and encoding file-like inputs as base64 strings. Returns the original data if no applicable formatting is performed.
+    
+    Parameters:
+        data (object): The value to format, which may be a date, datetime, or file-like object.
+        format_ (PropertyFormat): The desired format type ('iso8601', 'custom', or 'base64').
+        format_template (str | None): Custom format string for date/time formatting, used when format_ is 'custom'.
+    
+    Returns:
+        object: The formatted value, or the original data if no formatting was applied.
+    
+    Raises:
+        RuntimeError: If base64 encoding is requested but the input cannot be read as bytes.
+    """
     if isinstance(data, (date, datetime)):
         if format_ == "iso8601":
             return data.isoformat()
@@ -258,6 +285,18 @@ def _transform_typeddict(
     data: Mapping[str, object],
     expected_type: type,
 ) -> Mapping[str, object]:
+    """
+    Transforms a TypedDict-like mapping according to its type annotations, applying key aliasing and value transformations.
+    
+    Fields with a value marked as `NotGiven` are omitted. Keys are renamed if an alias is specified in their `PropertyInfo` annotation, and values are recursively transformed based on their annotated types.
+    
+    Parameters:
+        data (Mapping[str, object]): The input mapping to transform.
+        expected_type (type): The TypedDict type providing field annotations.
+    
+    Returns:
+        Mapping[str, object]: The transformed mapping with aliased keys and processed values.
+    """
     result: dict[str, object] = {}
     annotations = get_type_hints(expected_type, include_extras=True)
     for key, value in data.items():
@@ -279,9 +318,11 @@ async def async_maybe_transform(
     data: object,
     expected_type: object,
 ) -> Any | None:
-    """Wrapper over `async_transform()` that allows `None` to be passed.
-
-    See `async_transform()` for more details.
+    """
+    Asynchronously transforms data according to the expected type annotation, returning None if the input is None.
+    
+    Returns:
+        The transformed data, or None if the input data is None.
     """
     if data is None:
         return None
@@ -292,20 +333,13 @@ async def async_transform(
     data: _T,
     expected_type: object,
 ) -> _T:
-    """Transform dictionaries based off of type information from the given type, for example:
-
-    ```py
-    class Params(TypedDict, total=False):
-        card_id: Required[Annotated[str, PropertyInfo(alias="cardID")]]
-
-
-    transformed = transform({"card_id": "<my card ID>"}, Params)
-    # {'cardID': '<my card ID>'}
-    ```
-
-    Any keys / data that does not have type information given will be included as is.
-
-    It should be noted that the transformations that this function does are not represented in the type system.
+    """
+    Asynchronously transforms a data structure according to the provided type annotation, applying key aliasing and value formatting based on `Annotated` metadata.
+    
+    Any keys or values without type information are included unchanged. Transformations such as key renaming and value formatting (e.g., date serialization, base64 encoding) are applied only when specified in the type annotation metadata.
+    
+    Returns:
+        The transformed data structure with applied type-driven modifications.
     """
     transformed = await _async_transform_recursive(data, annotation=cast(type, expected_type))
     return cast(_T, transformed)
@@ -317,17 +351,18 @@ async def _async_transform_recursive(
     annotation: type,
     inner_type: type | None = None,
 ) -> object:
-    """Transform the given data against the expected type.
-
-    Args:
-        annotation: The direct type annotation given to the particular piece of data.
-            This may or may not be wrapped in metadata types, e.g. `Required[T]`, `Annotated[T, ...]` etc
-
-        inner_type: If applicable, this is the "inside" type. This is useful in certain cases where the outside type
-            is a container type such as `List[T]`. In that case `inner_type` should be set to `T` so that each entry in
-            the list can be transformed using the metadata from the container type.
-
-            Defaults to the same value as the `annotation` argument.
+    """
+    Recursively transforms data according to the provided type annotation, applying asynchronous formatting and property metadata.
+    
+    This function processes complex data structures (including TypedDicts, dictionaries, lists, iterables, unions, and Pydantic models) based on type annotations, especially those using `Annotated` with `PropertyInfo` metadata. It applies key aliasing, value formatting (such as date/time and base64 encoding), and recursively transforms nested elements. Asynchronous formatting is used for file-like inputs and paths.
+    
+    Parameters:
+        data (object): The input data to be transformed.
+        annotation (type): The type annotation describing the expected structure and metadata.
+        inner_type (type | None): The element type for container types (e.g., the item type for lists). Defaults to the same value as `annotation`.
+    
+    Returns:
+        object: The transformed data structure, with all applicable formatting and metadata applied.
     """
     if inner_type is None:
         inner_type = annotation
@@ -390,6 +425,17 @@ async def _async_transform_recursive(
 
 
 async def _async_format_data(data: object, format_: PropertyFormat, format_template: str | None) -> object:
+    """
+    Asynchronously formats data according to the specified property format.
+    
+    If the format is "iso8601" and the data is a date or datetime, returns its ISO 8601 string. If the format is "custom" and a template is provided, formats the date or datetime using the template. For "base64" format and supported file-like inputs, reads the bytes (asynchronously for pathlib.Path), encodes them in base64, and returns the ASCII string. Returns the original data if no formatting applies.
+    
+    Returns:
+        The formatted data, or the original data if no formatting was performed.
+    
+    Raises:
+        RuntimeError: If bytes cannot be read from the provided file-like input for base64 encoding.
+    """
     if isinstance(data, (date, datetime)):
         if format_ == "iso8601":
             return data.isoformat()
@@ -420,6 +466,11 @@ async def _async_transform_typeddict(
     data: Mapping[str, object],
     expected_type: type,
 ) -> Mapping[str, object]:
+    """
+    Asynchronously transforms a TypedDict-like mapping according to its type annotations, applying key aliasing and value transformations based on metadata.
+    
+    Fields without type annotations are left unchanged. Values marked as not given are omitted from the result.
+    """
     result: dict[str, object] = {}
     annotations = get_type_hints(expected_type, include_extras=True)
     for key, value in data.items():
@@ -444,4 +495,16 @@ def get_type_hints(
     localns: Mapping[str, Any] | None = None,
     include_extras: bool = False,
 ) -> dict[str, Any]:
+    """
+    Return type hints for the given object, optionally including extra metadata such as `Annotated` information.
+    
+    Parameters:
+        obj: The object (typically a class or function) to inspect for type hints.
+        globalns: Optional dictionary of global namespace for resolving forward references.
+        localns: Optional mapping of local namespace for resolving forward references.
+        include_extras: If True, includes extra type information such as `Annotated` metadata.
+    
+    Returns:
+        A dictionary mapping attribute or parameter names to their annotated types.
+    """
     return _get_type_hints(obj, globalns=globalns, localns=localns, include_extras=include_extras)

@@ -23,19 +23,18 @@ class StatsResource(SyncAPIResource):
     @cached_property
     def with_raw_response(self) -> StatsResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables retrieval of raw HTTP responses for stats API calls instead of parsed data.
+        
+        Use this property to access response metadata such as headers or status codes when calling resource methods.
         """
         return StatsResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> StatsResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming HTTP responses from the `/stats` endpoint without eagerly reading the response body.
+        
+        Use this property to access the `retrieve` method with streamed response handling.
         """
         return StatsResourceWithStreamingResponse(self)
 
@@ -49,7 +48,18 @@ class StatsResource(SyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> StatRetrieveResponse:
-        """Retrieve overall platform statistics and metrics"""
+        """
+        Retrieve overall platform statistics and metrics from the `/stats` endpoint.
+        
+        Parameters:
+            extra_headers (dict, optional): Additional HTTP headers to include in the request.
+            extra_query (dict, optional): Additional query parameters to include in the request.
+            extra_body (dict, optional): Additional body content to include in the request.
+            timeout (float or httpx.Timeout or None, optional): Override the default request timeout.
+        
+        Returns:
+            StatRetrieveResponse: Parsed response containing platform statistics and metrics.
+        """
         return self._get(
             "/stats",
             options=make_request_options(
@@ -63,19 +73,18 @@ class AsyncStatsResource(AsyncAPIResource):
     @cached_property
     def with_raw_response(self) -> AsyncStatsResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a wrapper that enables retrieval of raw HTTP responses for asynchronous stats API calls.
+        
+        Use this property to access the full HTTP response object, including headers and status code, instead of the parsed content.
         """
         return AsyncStatsResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> AsyncStatsResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a wrapper that enables streaming HTTP responses for the `retrieve` method without eagerly reading the response body.
+        
+        Use this to process large or continuous responses efficiently.
         """
         return AsyncStatsResourceWithStreamingResponse(self)
 
@@ -89,7 +98,18 @@ class AsyncStatsResource(AsyncAPIResource):
         extra_body: Body | None = None,
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> StatRetrieveResponse:
-        """Retrieve overall platform statistics and metrics"""
+        """
+        Asynchronously retrieve overall platform statistics and metrics from the `/stats` endpoint.
+        
+        Parameters:
+            extra_headers (dict, optional): Additional HTTP headers to include in the request.
+            extra_query (dict, optional): Additional query parameters to include in the request.
+            extra_body (dict, optional): Additional body content to include in the request.
+            timeout (float or httpx.Timeout or None, optional): Timeout setting for the request.
+        
+        Returns:
+            StatRetrieveResponse: Parsed response containing platform statistics and metrics.
+        """
         return await self._get(
             "/stats",
             options=make_request_options(
@@ -101,6 +121,12 @@ class AsyncStatsResource(AsyncAPIResource):
 
 class StatsResourceWithRawResponse:
     def __init__(self, stats: StatsResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for the stats resource.
+        
+        Parameters:
+            stats (StatsResource): The stats resource instance to wrap.
+        """
         self._stats = stats
 
         self.retrieve = to_raw_response_wrapper(
@@ -110,6 +136,12 @@ class StatsResourceWithRawResponse:
 
 class AsyncStatsResourceWithRawResponse:
     def __init__(self, stats: AsyncStatsResource) -> None:
+        """
+        Initialize the wrapper to provide raw HTTP responses for asynchronous stats retrieval.
+        
+        Parameters:
+            stats (AsyncStatsResource): The asynchronous stats resource to wrap.
+        """
         self._stats = stats
 
         self.retrieve = async_to_raw_response_wrapper(
@@ -119,6 +151,12 @@ class AsyncStatsResourceWithRawResponse:
 
 class StatsResourceWithStreamingResponse:
     def __init__(self, stats: StatsResource) -> None:
+        """
+        Initialize the streaming response wrapper for the StatsResource.
+        
+        Parameters:
+            stats (StatsResource): The StatsResource instance to wrap.
+        """
         self._stats = stats
 
         self.retrieve = to_streamed_response_wrapper(
@@ -128,6 +166,12 @@ class StatsResourceWithStreamingResponse:
 
 class AsyncStatsResourceWithStreamingResponse:
     def __init__(self, stats: AsyncStatsResource) -> None:
+        """
+        Initialize the streaming response wrapper for asynchronous stats retrieval.
+        
+        Parameters:
+            stats (AsyncStatsResource): The asynchronous stats resource to wrap.
+        """
         self._stats = stats
 
         self.retrieve = async_to_streamed_response_wrapper(

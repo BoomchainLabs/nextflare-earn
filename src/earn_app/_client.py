@@ -87,9 +87,12 @@ class EarnApp(SyncAPIClient):
         # part of our public interface in the future.
         _strict_response_validation: bool = False,
     ) -> None:
-        """Construct a new synchronous EarnApp client instance.
-
-        This automatically infers the `api_key` argument from the `EARN_APP_API_KEY` environment variable if it is not provided.
+        """
+        Initializes a new synchronous EarnApp API client with configurable authentication, environment, and HTTP options.
+        
+        If `api_key` is not provided, it is inferred from the `EARN_APP_API_KEY` environment variable. The API base URL is determined by the `environment` argument, the `EARN_APP_BASE_URL` environment variable, or defaults to the production environment. Raises an error if the API key is missing or if environment and base URL configuration is ambiguous or invalid.
+        
+        Resource accessors for users, missions, staking, stats, and token management are initialized, along with raw and streaming response wrappers.
         """
         if api_key is None:
             api_key = os.environ.get("EARN_APP_API_KEY")
@@ -147,17 +150,29 @@ class EarnApp(SyncAPIClient):
     @property
     @override
     def qs(self) -> Querystring:
+        """
+        Return a Querystring instance configured to format array parameters as comma-separated values.
+        """
         return Querystring(array_format="comma")
 
     @property
     @override
     def auth_headers(self) -> dict[str, str]:
+        """
+        Return the authorization headers required for API requests using the configured API key.
+        
+        Returns:
+            dict: A dictionary containing the Bearer token authorization header.
+        """
         api_key = self.api_key
         return {"Authorization": f"Bearer {api_key}"}
 
     @property
     @override
     def default_headers(self) -> dict[str, str | Omit]:
+        """
+        Return the default HTTP headers for the client, including a header indicating synchronous operation and any custom headers.
+        """
         return {
             **super().default_headers,
             "X-Stainless-Async": "false",
@@ -180,7 +195,25 @@ class EarnApp(SyncAPIClient):
         _extra_kwargs: Mapping[str, Any] = {},
     ) -> Self:
         """
-        Create a new client instance re-using the same options given to the current client with optional overriding.
+        Create a new client instance with the same configuration as the current client, allowing selective overrides for authentication, environment, base URL, timeout, retries, headers, and query parameters.
+        
+        Parameters:
+            api_key (str, optional): Override the API key for authentication.
+            environment (Literal["production", "environment_1"], optional): Override the target environment.
+            base_url (str or httpx.URL, optional): Override the API base URL.
+            timeout (float or Timeout, optional): Override the request timeout.
+            max_retries (int, optional): Override the maximum number of retry attempts.
+            default_headers (Mapping[str, str], optional): Additional headers to merge with existing headers.
+            set_default_headers (Mapping[str, str], optional): Replace all default headers with this mapping.
+            default_query (Mapping[str, object], optional): Additional query parameters to merge with existing parameters.
+            set_default_query (Mapping[str, object], optional): Replace all default query parameters with this mapping.
+            _extra_kwargs (Mapping[str, Any], optional): Additional keyword arguments for advanced customization.
+        
+        Returns:
+            Self: A new client instance with the specified configuration overrides.
+        
+        Raises:
+            ValueError: If both `default_headers` and `set_default_headers` are provided, or if both `default_query` and `set_default_query` are provided.
         """
         if default_headers is not None and set_default_headers is not None:
             raise ValueError("The `default_headers` and `set_default_headers` arguments are mutually exclusive")
@@ -225,6 +258,19 @@ class EarnApp(SyncAPIClient):
         body: object,
         response: httpx.Response,
     ) -> APIStatusError:
+        """
+        Return an APIStatusError instance corresponding to the HTTP response status code.
+        
+        Maps common HTTP error status codes to specific exception classes for more granular error handling. Returns a generic APIStatusError if the status code does not match a known type.
+        
+        Parameters:
+            err_msg (str): The error message to include in the exception.
+            body (object): The response body associated with the error.
+            response (httpx.Response): The HTTP response object.
+        
+        Returns:
+            APIStatusError: An exception instance representing the specific error condition.
+        """
         if response.status_code == 400:
             return _exceptions.BadRequestError(err_msg, response=response, body=body)
 
@@ -289,9 +335,12 @@ class AsyncEarnApp(AsyncAPIClient):
         # part of our public interface in the future.
         _strict_response_validation: bool = False,
     ) -> None:
-        """Construct a new async AsyncEarnApp client instance.
-
-        This automatically infers the `api_key` argument from the `EARN_APP_API_KEY` environment variable if it is not provided.
+        """
+        Initializes a new asynchronous EarnApp API client with configurable authentication, environment, and HTTP options.
+        
+        If `api_key` is not provided, it is inferred from the `EARN_APP_API_KEY` environment variable. The API base URL is determined by the `environment` argument, the `EARN_APP_BASE_URL` environment variable, or defaults to the production environment. Raises an error if the API key is missing or if environment and base URL configuration is ambiguous or invalid.
+        
+        Resource accessors for users, missions, staking, stats, and token management are initialized for asynchronous use, along with raw and streaming response wrappers.
         """
         if api_key is None:
             api_key = os.environ.get("EARN_APP_API_KEY")
@@ -349,17 +398,29 @@ class AsyncEarnApp(AsyncAPIClient):
     @property
     @override
     def qs(self) -> Querystring:
+        """
+        Return a Querystring instance configured to format array parameters as comma-separated values.
+        """
         return Querystring(array_format="comma")
 
     @property
     @override
     def auth_headers(self) -> dict[str, str]:
+        """
+        Return the authorization headers required for API requests using the configured API key.
+        
+        Returns:
+            dict: A dictionary containing the Bearer token authorization header.
+        """
         api_key = self.api_key
         return {"Authorization": f"Bearer {api_key}"}
 
     @property
     @override
     def default_headers(self) -> dict[str, str | Omit]:
+        """
+        Return the default headers for asynchronous API requests, including an async library identifier and any custom headers.
+        """
         return {
             **super().default_headers,
             "X-Stainless-Async": f"async:{get_async_library()}",
@@ -382,7 +443,13 @@ class AsyncEarnApp(AsyncAPIClient):
         _extra_kwargs: Mapping[str, Any] = {},
     ) -> Self:
         """
-        Create a new client instance re-using the same options given to the current client with optional overriding.
+        Create a new client instance with the same configuration as the current client, allowing selective overrides for authentication, environment, base URL, timeout, retries, headers, and query parameters.
+        
+        Raises:
+            ValueError: If both `default_headers` and `set_default_headers`, or both `default_query` and `set_default_query`, are provided.
+            
+        Returns:
+            A new client instance with the specified options applied.
         """
         if default_headers is not None and set_default_headers is not None:
             raise ValueError("The `default_headers` and `set_default_headers` arguments are mutually exclusive")
@@ -427,6 +494,19 @@ class AsyncEarnApp(AsyncAPIClient):
         body: object,
         response: httpx.Response,
     ) -> APIStatusError:
+        """
+        Return an APIStatusError instance corresponding to the HTTP response status code.
+        
+        Maps common HTTP error status codes to specific exception classes for more granular error handling. Returns a generic APIStatusError if the status code does not match a known type.
+        
+        Parameters:
+            err_msg (str): The error message to include in the exception.
+            body (object): The response body associated with the error.
+            response (httpx.Response): The HTTP response object.
+        
+        Returns:
+            APIStatusError: An exception instance representing the specific error condition.
+        """
         if response.status_code == 400:
             return _exceptions.BadRequestError(err_msg, response=response, body=body)
 
@@ -455,6 +535,12 @@ class AsyncEarnApp(AsyncAPIClient):
 
 class EarnAppWithRawResponse:
     def __init__(self, client: EarnApp) -> None:
+        """
+        Initialize resource attributes with raw response variants for the given EarnApp client.
+        
+        Parameters:
+            client (EarnApp): The synchronous EarnApp client whose resources will be wrapped for raw response access.
+        """
         self.users = users.UsersResourceWithRawResponse(client.users)
         self.missions = missions.MissionsResourceWithRawResponse(client.missions)
         self.staking = staking.StakingResourceWithRawResponse(client.staking)
@@ -464,6 +550,12 @@ class EarnAppWithRawResponse:
 
 class AsyncEarnAppWithRawResponse:
     def __init__(self, client: AsyncEarnApp) -> None:
+        """
+        Initialize resource accessors for the asynchronous EarnApp client with raw response variants.
+        
+        Parameters:
+            client (AsyncEarnApp): The asynchronous EarnApp client instance whose resources will be wrapped.
+        """
         self.users = users.AsyncUsersResourceWithRawResponse(client.users)
         self.missions = missions.AsyncMissionsResourceWithRawResponse(client.missions)
         self.staking = staking.AsyncStakingResourceWithRawResponse(client.staking)
@@ -473,6 +565,12 @@ class AsyncEarnAppWithRawResponse:
 
 class EarnAppWithStreamedResponse:
     def __init__(self, client: EarnApp) -> None:
+        """
+        Initialize resource attributes to provide streaming response variants for the EarnApp client.
+        
+        Parameters:
+            client (EarnApp): The synchronous EarnApp client whose resources will be wrapped for streaming responses.
+        """
         self.users = users.UsersResourceWithStreamingResponse(client.users)
         self.missions = missions.MissionsResourceWithStreamingResponse(client.missions)
         self.staking = staking.StakingResourceWithStreamingResponse(client.staking)
@@ -482,6 +580,12 @@ class EarnAppWithStreamedResponse:
 
 class AsyncEarnAppWithStreamedResponse:
     def __init__(self, client: AsyncEarnApp) -> None:
+        """
+        Initialize resource attributes with streaming response variants for the asynchronous EarnApp client.
+        
+        Parameters:
+            client (AsyncEarnApp): The asynchronous EarnApp client instance whose resources will be wrapped for streaming responses.
+        """
         self.users = users.AsyncUsersResourceWithStreamingResponse(client.users)
         self.missions = missions.AsyncMissionsResourceWithStreamingResponse(client.missions)
         self.staking = staking.AsyncStakingResourceWithStreamingResponse(client.staking)

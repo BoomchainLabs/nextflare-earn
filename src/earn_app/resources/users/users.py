@@ -34,24 +34,27 @@ __all__ = ["UsersResource", "AsyncUsersResource"]
 class UsersResource(SyncAPIResource):
     @cached_property
     def stakes(self) -> StakesResource:
+        """
+        Provides access to stake-related operations for users.
+        
+        Returns:
+            StakesResource: Resource for managing user stakes.
+        """
         return StakesResource(self._client)
 
     @cached_property
     def with_raw_response(self) -> UsersResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a variant of this resource where all method calls return raw HTTP response objects instead of parsed data.
+        
+        Use this property to access response metadata such as headers or status codes alongside the response body.
         """
         return UsersResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> UsersResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a variant of this resource that provides streaming HTTP responses without eagerly reading the response body.
         """
         return UsersResourceWithStreamingResponse(self)
 
@@ -70,24 +73,16 @@ class UsersResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> User:
         """
-        Register a new user in the system with their wallet address
-
-        Args:
-          wallet_address: User's blockchain wallet address
-
-          email: User's email address
-
-          referral_code: Referral code used during signup
-
-          username: User's chosen username
-
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Registers a new user with the specified wallet address and optional details.
+        
+        Parameters:
+            wallet_address (str): The blockchain wallet address for the new user.
+            email (str, optional): The user's email address.
+            referral_code (str, optional): A referral code used during signup.
+            username (str, optional): The user's chosen username.
+        
+        Returns:
+            User: The created user object.
         """
         return self._post(
             "/users",
@@ -118,16 +113,13 @@ class UsersResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> UserListMissionsResponse:
         """
-        Retrieve all missions for a specific user
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Retrieve all missions associated with the specified user.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user whose missions are to be retrieved.
+        
+        Returns:
+            UserListMissionsResponse: An object containing the list of missions for the user.
         """
         return self._get(
             f"/users/{user_id}/missions",
@@ -149,16 +141,13 @@ class UsersResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> UserListReferralsResponse:
         """
-        Retrieve all referrals made by a specific user
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Retrieve all referrals made by the specified user.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user whose referrals are to be retrieved.
+        
+        Returns:
+            UserListReferralsResponse: A response object containing the list of referrals made by the user.
         """
         return self._get(
             f"/users/{user_id}/referrals",
@@ -180,16 +169,16 @@ class UsersResource(SyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> User:
         """
-        Retrieve user details by their blockchain wallet address
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Retrieve user details using a blockchain wallet address.
+        
+        Parameters:
+            address (str): The blockchain wallet address to look up.
+        
+        Returns:
+            User: The user associated with the specified wallet address.
+        
+        Raises:
+            ValueError: If the provided address is empty.
         """
         if not address:
             raise ValueError(f"Expected a non-empty value for `address` but received {address!r}")
@@ -205,24 +194,24 @@ class UsersResource(SyncAPIResource):
 class AsyncUsersResource(AsyncAPIResource):
     @cached_property
     def stakes(self) -> AsyncStakesResource:
+        """
+        Returns the asynchronous stakes resource for managing user-related stake operations.
+        """
         return AsyncStakesResource(self._client)
 
     @cached_property
     def with_raw_response(self) -> AsyncUsersResourceWithRawResponse:
         """
-        This property can be used as a prefix for any HTTP method call to return
-        the raw response object instead of the parsed content.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#accessing-raw-response-data-eg-headers
+        Returns a variant of this resource where all method calls yield raw HTTP response objects instead of parsed data.
+        
+        Use this property to access response metadata such as headers or status codes alongside the response body.
         """
         return AsyncUsersResourceWithRawResponse(self)
 
     @cached_property
     def with_streaming_response(self) -> AsyncUsersResourceWithStreamingResponse:
         """
-        An alternative to `.with_raw_response` that doesn't eagerly read the response body.
-
-        For more information, see https://www.github.com/BoomchainLabs/nextflare-earn#with_streaming_response
+        Returns a variant of this resource that provides streaming HTTP responses without eagerly reading the response body.
         """
         return AsyncUsersResourceWithStreamingResponse(self)
 
@@ -241,24 +230,16 @@ class AsyncUsersResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> User:
         """
-        Register a new user in the system with their wallet address
-
-        Args:
-          wallet_address: User's blockchain wallet address
-
-          email: User's email address
-
-          referral_code: Referral code used during signup
-
-          username: User's chosen username
-
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously registers a new user with the specified wallet address and optional details.
+        
+        Parameters:
+            wallet_address (str): The user's blockchain wallet address. Required.
+            email (str, optional): The user's email address.
+            referral_code (str, optional): Referral code used during signup.
+            username (str, optional): The user's chosen username.
+        
+        Returns:
+            User: The newly created user object.
         """
         return await self._post(
             "/users",
@@ -289,16 +270,13 @@ class AsyncUsersResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> UserListMissionsResponse:
         """
-        Retrieve all missions for a specific user
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously retrieves all missions associated with a specific user.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user whose missions are to be retrieved.
+        
+        Returns:
+            UserListMissionsResponse: An object containing the list of missions for the specified user.
         """
         return await self._get(
             f"/users/{user_id}/missions",
@@ -320,16 +298,13 @@ class AsyncUsersResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> UserListReferralsResponse:
         """
-        Retrieve all referrals made by a specific user
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously retrieves all referrals made by the specified user.
+        
+        Parameters:
+            user_id (int): The unique identifier of the user whose referrals are to be retrieved.
+        
+        Returns:
+            UserListReferralsResponse: A response object containing the list of referrals made by the user.
         """
         return await self._get(
             f"/users/{user_id}/referrals",
@@ -351,16 +326,16 @@ class AsyncUsersResource(AsyncAPIResource):
         timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
     ) -> User:
         """
-        Retrieve user details by their blockchain wallet address
-
-        Args:
-          extra_headers: Send extra headers
-
-          extra_query: Add additional query parameters to the request
-
-          extra_body: Add additional JSON properties to the request
-
-          timeout: Override the client-level default timeout for this request, in seconds
+        Asynchronously retrieves user details using the specified blockchain wallet address.
+        
+        Parameters:
+            address (str): The blockchain wallet address of the user to retrieve.
+        
+        Returns:
+            User: The user associated with the provided wallet address.
+        
+        Raises:
+            ValueError: If the provided address is empty.
         """
         if not address:
             raise ValueError(f"Expected a non-empty value for `address` but received {address!r}")
@@ -375,6 +350,12 @@ class AsyncUsersResource(AsyncAPIResource):
 
 class UsersResourceWithRawResponse:
     def __init__(self, users: UsersResource) -> None:
+        """
+        Initialize a wrapper for UsersResource methods to return raw HTTP responses.
+        
+        Parameters:
+            users (UsersResource): The UsersResource instance to wrap.
+        """
         self._users = users
 
         self.create = to_raw_response_wrapper(
@@ -392,11 +373,23 @@ class UsersResourceWithRawResponse:
 
     @cached_property
     def stakes(self) -> StakesResourceWithRawResponse:
+        """
+        Provides access to the stakes resource with raw HTTP response handling for user-related operations.
+        
+        Returns:
+            StakesResourceWithRawResponse: A resource for managing user stakes that returns raw HTTP responses.
+        """
         return StakesResourceWithRawResponse(self._users.stakes)
 
 
 class AsyncUsersResourceWithRawResponse:
     def __init__(self, users: AsyncUsersResource) -> None:
+        """
+        Initialize an asynchronous users resource wrapper that returns raw HTTP responses for user-related operations.
+        
+        Parameters:
+            users (AsyncUsersResource): The asynchronous users resource to be wrapped.
+        """
         self._users = users
 
         self.create = async_to_raw_response_wrapper(
@@ -414,11 +407,23 @@ class AsyncUsersResourceWithRawResponse:
 
     @cached_property
     def stakes(self) -> AsyncStakesResourceWithRawResponse:
+        """
+        Provides access to the stakes sub-resource with raw HTTP response handling for asynchronous operations.
+        
+        Returns:
+            AsyncStakesResourceWithRawResponse: The stakes resource wrapper that returns raw HTTP responses.
+        """
         return AsyncStakesResourceWithRawResponse(self._users.stakes)
 
 
 class UsersResourceWithStreamingResponse:
     def __init__(self, users: UsersResource) -> None:
+        """
+        Initialize a UsersResourceWithStreamingResponse instance that wraps a UsersResource to provide streaming HTTP response variants of user-related API methods.
+        
+        Parameters:
+            users (UsersResource): The UsersResource instance to be wrapped for streaming response support.
+        """
         self._users = users
 
         self.create = to_streamed_response_wrapper(
@@ -436,11 +441,20 @@ class UsersResourceWithStreamingResponse:
 
     @cached_property
     def stakes(self) -> StakesResourceWithStreamingResponse:
+        """
+        Provides access to the stakes resource with streaming HTTP response support.
+        """
         return StakesResourceWithStreamingResponse(self._users.stakes)
 
 
 class AsyncUsersResourceWithStreamingResponse:
     def __init__(self, users: AsyncUsersResource) -> None:
+        """
+        Initialize an asynchronous users resource wrapper that returns streaming HTTP responses.
+        
+        Parameters:
+            users (AsyncUsersResource): The asynchronous users resource to wrap.
+        """
         self._users = users
 
         self.create = async_to_streamed_response_wrapper(
@@ -458,4 +472,10 @@ class AsyncUsersResourceWithStreamingResponse:
 
     @cached_property
     def stakes(self) -> AsyncStakesResourceWithStreamingResponse:
+        """
+        Provides access to the streaming response variant of the stakes sub-resource for asynchronous user operations.
+        
+        Returns:
+            AsyncStakesResourceWithStreamingResponse: The stakes resource with streaming HTTP response support.
+        """
         return AsyncStakesResourceWithStreamingResponse(self._users.stakes)
